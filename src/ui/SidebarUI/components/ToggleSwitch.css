@@ -1,0 +1,36 @@
+.view-toggle-container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 0.25rem 0;
+}
+
+.view-toggle-label {
+    color: var(--text-color);
+    font-size: 0.9rem;
+}
+
+.view-toggle-control {
+    display: flex;
+    gap: 2px;
+}
+
+.toggle-box {
+    width: 20px;
+    height: 20px;
+    border: 1px solid var(--tool-panel-border);
+    cursor: pointer;
+    padding: 0;
+    background-color: var(--sidebar-bg); /* Darkest state */
+}
+
+/* The "off" button is a slightly lighter gray in the image */
+.toggle-box[data-state="off"] {
+    background-color: #393C40;
+}
+
+/* The active state is a lighter gray */
+.toggle-box.active {
+    background-color: var(--icon-color);
+}

@@ -1,0 +1,96 @@
+/* --- Part Properties Panel Specific Styles --- */
+.part-properties-panel-wrapper {
+    width: 320px;
+}
+
+.part-properties-panel-body {
+    padding: 1rem;
+    overflow-y: auto;
+}
+
+/* --- Empty State --- */
+.part-properties-empty {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%;
+    text-align: center;
+    color: var(--icon-color);
+    padding: 2rem;
+}
+
+/* --- Selected Part Details --- */
+.part-details {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.part-main-info {
+    background-color: var(--content-bg);
+    padding: 1rem;
+    border-radius: 4px;
+}
+
+.part-name {
+    font-size: 1.2rem !important;
+    font-weight: 600 !important;
+    margin: 0 0 1rem 0 !important;
+}
+
+.part-stats {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+}
+
+.part-stats > div {
+    display: flex;
+    justify-content: space-between;
+}
+
+.part-stats span:first-child {
+    color: var(--icon-color);
+}
+
+.part-stats span:last-child {
+    font-weight: 500;
+}
+
+/* --- Accordion Styles --- */
+.part-accordion {
+    background-color: var(--content-bg) !important;
+    color: var(--text-color) !important;
+    box-shadow: none !important;
+    border-radius: 4px !important;
+    overflow: hidden;
+    /* To remove the default top border on non-first accordions */
+    &::before {
+        display: none;
+    }
+}
+
+.part-accordion-summary {
+    background-color: var(--icon-bg) !important;
+    min-height: 48px !important;
+    padding: 0.75rem 1rem !important;
+}
+
+.part-accordion-summary .MuiAccordionSummary-content {
+    margin: 0 !important;
+}
+
+.collapsible-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.MuiAccordionSummary-expandIconWrapper.Mui-expanded {
+    transform: rotate(90deg) !important;
+}
+
+.part-accordion-details {
+    padding: 1rem !important;
+    border-top: 1px solid var(--separator-color);
+}

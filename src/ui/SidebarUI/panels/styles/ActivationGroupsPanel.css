@@ -1,0 +1,106 @@
+/* --- Activation Groups Panel Specific Styles --- */
+.activation-groups-panel-wrapper {
+    width: 320px;
+}
+
+.activation-groups-panel-body {
+    flex-direction: row !important;
+    padding: 0 !important;
+}
+
+/* --- Internal Sidebar --- */
+.internal-sidebar {
+    width: 60px;
+    background-color: var(--tool-panel-border);
+    padding: 0.5rem 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+.internal-tool-button {
+    width: 40px !important;
+    height: 40px !important;
+    border-radius: 4px !important;
+    background-color: var(--icon-bg) !important;
+    color: var(--icon-color) !important;
+    border: 1px solid transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.internal-tool-button:hover {
+    border-color: var(--active-brand-color) !important;
+    background-color: var(--icon-bg) !important;
+}
+
+.internal-tool-button.active {
+    background-color: var(--active-tool-color, var(--active-brand-color)) !important;
+    color: white !important;
+}
+
+
+/* --- Groups List --- */
+.groups-list-container {
+    flex-grow: 1;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.group-row {
+    display: grid;
+    grid-template-columns: 20px 1fr 40px;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    border-radius: 4px;
+}
+
+.group-row:hover {
+    background-color: var(--icon-bg);
+}
+
+.group-number {
+    color: var(--icon-color);
+    font-size: 0.9rem;
+    text-align: right;
+}
+
+.group-name {
+    color: var(--icon-color);
+    font-size: 0.9rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.group-name.custom {
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* Custom Toggle Switch */
+.group-toggle {
+    display: flex;
+    width: 38px;
+    height: 20px;
+    background-color: var(--tool-input-bg);
+    border: 1px solid var(--tool-input-border);
+    border-radius: 3px;
+    padding: 2px;
+    gap: 2px;
+    cursor: pointer;
+}
+
+.toggle-slot {
+    flex: 1;
+    background-color: #36393f;
+    border-radius: 1px;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.group-toggle.active .toggle-slot:last-child {
+    background-color: var(--active-brand-color);
+}

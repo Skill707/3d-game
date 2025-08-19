@@ -1,0 +1,76 @@
+/* --- Add Parts Panel Specific Styles --- */
+.add-parts-panel-wrapper {
+    width: 320px;
+    user-select: none;
+}
+
+.add-parts-panel-body {
+    padding: 1rem;
+    gap: 1rem;
+}
+
+/* --- Parts Grid --- */
+.parts-grid {
+    flex-grow: 1;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+    overflow-y: auto;
+    padding-right: 0.5rem; /* For scrollbar */
+    padding-bottom: 0.5rem;
+}
+
+.part-item {
+    background-color: var(--icon-bg) !important;
+    color: var(--text-color) !important;
+    border-radius: 4px !important;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    cursor: pointer;
+    border: 1px solid transparent !important;
+    transition: border-color 0.2s ease !important;
+    user-select: none;
+}
+
+.part-item:hover, .part-item:focus {
+    border-color: var(--brand-color) !important;
+    outline: none;
+}
+
+.part-image-placeholder {
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background-color: var(--sidebar-bg);
+    border-radius: 3px;
+    margin-bottom: 0.75rem;
+}
+
+.part-name {
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    color: var(--text-color);
+}
+
+.part-description {
+    font-size: 0.8rem !important;
+    color: var(--icon-color) !important;
+    margin: 0.25rem 0 0 0 !important;
+}
+
+/* Custom Scrollbar */
+.parts-grid::-webkit-scrollbar {
+  width: 8px;
+}
+.parts-grid::-webkit-scrollbar-track {
+  background: var(--tool-input-bg);
+  border-radius: 4px;
+}
+.parts-grid::-webkit-scrollbar-thumb {
+  background: var(--icon-bg);
+  border-radius: 4px;
+}
+.parts-grid::-webkit-scrollbar-thumb:hover {
+  background: var(--separator-color);
+}

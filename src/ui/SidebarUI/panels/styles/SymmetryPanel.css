@@ -1,0 +1,93 @@
+/* --- Symmetry Panel Specific Styles --- */
+.symmetry-panel-wrapper {
+    width: 250px;
+}
+
+.symmetry-panel-body {
+    padding: 1rem;
+    gap: 1.5rem;
+    flex-direction: column;
+    display: flex;
+}
+
+.symmetry-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.symmetry-info-title {
+    font-size: 1rem;
+    font-weight: 500;
+    color: var(--text-color);
+    margin: 0;
+}
+
+.symmetry-info-text {
+    font-size: 0.9rem;
+    color: var(--icon-color);
+    margin: 0;
+    line-height: 1.5;
+}
+
+.quick-mirror-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.quick-mirror-title {
+    text-align: center;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    margin: 0;
+    color: var(--icon-color);
+}
+
+.quick-mirror-text {
+    font-size: 0.9rem;
+    color: var(--icon-color);
+    margin: 0;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.quick-mirror-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+}
+
+.quick-mirror-btn {
+    background-color: var(--icon-bg) !important;
+    color: var(--icon-color) !important;
+    border: 1px solid var(--tool-input-border) !important;
+    width: 48px !important;
+    height: 48px !important;
+    border-radius: 4px !important;
+}
+
+.quick-mirror-btn:hover {
+    background-color: var(--content-bg) !important;
+    border-color: var(--separator-color) !important;
+    color: var(--icon-hover-color) !important;
+}
+
+.mirror-tool-btn {
+    margin-top: auto;
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--menu-button-bg);
+    border: 1px solid var(--menu-button-border);
+    color: var(--text-color);
+    font-size: 0.9rem;
+    font-weight: 500;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.mirror-tool-btn:hover {
+    background-color: hsl(221, 5%, 30%);
+}

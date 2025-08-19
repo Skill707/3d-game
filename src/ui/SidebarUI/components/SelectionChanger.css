@@ -1,0 +1,30 @@
+.selection-changer-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    margin: 0.5rem 0;
+}
+
+.selection-changer-label {
+    color: var(--icon-color);
+    font-size: 0.9rem !important;
+}
+
+.selection-changer-buttons {
+    display: flex;
+    gap: 0.5rem;
+    width: 100%;
+}
+
+.selection-changer-btn {
+    flex-grow: 1;
+    background-color: var(--active-brand-color) !important;
+    color: white !important;
+    border-radius: 4px !important;
+    height: 36px !important;
+}
+
+.selection-changer-btn:hover {
+    filter: brightness(1.1);
+}

@@ -1,0 +1,25 @@
+.sensitivity-slider-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+}
+
+.sensitivity-slider-label {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+}
+
+.slider-wrapper {
+    flex-grow: 1;
+    margin: 0 1rem;
+}
+
+.sensitivity-slider-value {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    flex-shrink: 0;
+    width: 35px; /* Allocate space to prevent layout shift */
+    text-align: right;
+}
