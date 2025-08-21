@@ -5,6 +5,8 @@ import "./index.css";
 import { AircraftEditorScene } from "./AircraftEditorScene";
 
 export function Game() {
+	console.log("function Game");
+	
 	return (
 		<>
 			<AircraftEditorScene />
@@ -13,7 +15,7 @@ export function Game() {
 }
 
 createRoot(document.getElementById("root")).render(
-	<StrictMode>
+	<>
 		<Game />
-	</StrictMode>
+	</>
 );

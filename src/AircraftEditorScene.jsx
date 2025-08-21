@@ -6,7 +6,8 @@ import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import Craft from "./components/Craft";
 
 export function AircraftEditorScene() {
-	const orbit = useRef()
+	console.log("function AircraftEditorSceneame");
+	const orbit = useRef();
 	return (
 		<>
 			<AircraftEditorUI />
@@ -26,16 +27,8 @@ export function AircraftEditorScene() {
 						fadeDistance={30}
 						infiniteGrid
 					/>
+					<Craft orbit={orbit} />
 
-					<KeyboardControls
-						map={[
-							{ name: "lmb", keys: ["Mouse0"] },
-							{ name: "mmb", keys: ["Mouse1"] },
-							{ name: "rmb", keys: ["Mouse2"] },
-						]}
-					>
-						<Craft orbit={orbit} />
-					</KeyboardControls>
 					{/*<TransformControls enabled={true} ref={null} object={null} onMouseUp={() => {}} mode={"rotate"} /> */}
 					<Environment preset="city" />
 					<OrbitControls ref={orbit} enablePan={true} minDistance={5} maxDistance={20} maxPolarAngle={Math.PI / 2 - 0.1} makeDefault />

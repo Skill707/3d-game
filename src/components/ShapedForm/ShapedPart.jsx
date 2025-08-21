@@ -1,9 +1,8 @@
-import { useState } from "react";
 import { Segment } from "../ShapedForm/Segment";
 import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
 
 export function ShapedPart({ part }) {
-	const [segments, setSegments] = useState(part.shape.sections);
+	const segments = part.shape.segments;
 
 	return (
 		<>

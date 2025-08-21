@@ -1,17 +1,18 @@
-import { Text, Billboard, Extrude } from "@react-three/drei";
+import { Text, Billboard } from "@react-three/drei";
 import { useAtom } from "jotai";
 import * as THREE from "three";
-import { useEffect, useState } from "react";
-import { useThree, useFrame } from "@react-three/fiber";
-import { Raycaster } from "three";
+import { useCallback, useEffect, useRef } from "react";
+import { useThree } from "@react-three/fiber";
 import { partsAtom } from "../state/atoms";
 import { CreatePart, Part } from "../utils/partFactory";
-import { addPart, transformPart, selectPartByID, clearSavedParts } from "../state/actions";
+import { addPart, selectPartByID, clearSavedParts } from "../state/actions";
 import { useControls } from "leva";
 import { produce } from "immer";
-import { DragControls } from "three/addons/controls/DragControls.js";
+import { DragControls } from "three/examples/jsm/Addons.js";
 
 export default function Craft({ orbit }) {
+	//console.log("Craft comp update");
+
 	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
 	const parts = partsStorage.parts;
 	const selectedID = partsStorage.selectedID;
@@ -22,121 +23,181 @@ export default function Craft({ orbit }) {
 		clearSavedParts(setPartsStorage);
 	}
 
-	const { camera, scene, mouse, gl } = useThree();
-	const [raycaster] = useState(() => new Raycaster());
+	const { camera, scene, gl } = useThree();
 
-	
+	const lastButton = useRef(0);
+
 	useEffect(() => {
-		const partsGroupObjects = scene.children;
-		console.log("partsGroupObjects", partsGroupObjects);
-	
-		if (partsGroupObjects) {
-			const controls = new DragControls(partsGroupObjects.filter((obj)=>obj.name.includes("drag")), camera, gl.domElement);
+		const handler = (ev) => (lastButton.current = ev.button);
+		gl.domElement.addEventListener("pointerdown", handler);
+		return () => gl.domElement.removeEventListener("pointerdown", handler);
+	}, [gl]);
+
+	const createControls = useCallback(
+		(partsGroupObjects) => {
+			const controls = new DragControls(partsGroupObjects, camera, gl.domElement);
 			controls.transformGroup = true;
-			controls.rotateSpeed = 0;
-
-			function dragstart(event) {
-				console.log("dragstart", event.object.userData);
-				orbit.current.enabled = false;
-				
-			}
-
-			controls.addEventListener("dragstart", dragstart);
-			function dragend(event) {
-				//console.log("dragend", event.object);
-				orbit.current.enabled = true;
-			}
-
-			controls.addEventListener("dragend", dragend);
-			return () => {
-				controls.dispose()
+			controls.recursive = true;
+			controls.mouseButtons = {
+				LEFT: 1,
+				RIGHT: 1,
 			};
-		}
-	}, [parts, camera, orbit, gl, scene]);
 
+			const dragstart = (e) => {
+				console.log("START", e.object.name);
+				orbit.current.enabled = false;
+				const part = parts.find((p) => p.objectName === e.object.name) || null;
+				if (!part) return;
+				const id = part.id;
+				if (lastButton.current === 2) {
+					const newID = Math.max(0, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
+					const newPart = new Part({
+						...part,
+						id: newID,
+						pos: e.object.position.clone().toArray(),
+						rot: e.object.rotation.clone().toArray(),
+						attachPartsByID: {
+							front: [],
+							back: [],
+							side: [],
+						},
+					});
+					addPart(setPartsStorage, newPart);
+					selectPartByID(setPartsStorage, id);
+				} else if (lastButton.current === 0) {
+					setPartsStorage((prev) => {
+						const parts = prev.parts.map((p) => (p.id === id ? { ...p, selected: true, drag: true } : { ...p, selected: false, drag: false }));
+						return { ...prev, parts, selectedID: id };
+					});
+				}
+			};
 
-	const getCollision = true;
+			const drag = (e) => {
+				// актуальные "другие" объекты каждый раз
+				const others = partsGroupObjects.filter((o) => o !== e.object);
+				if (!others.length) return;
 
-	useFrame((state) => {
-		if (selectedPart && !selectedPart.drag) return;
-		raycaster.setFromCamera(mouse, camera);
-		const partsGroupObjects = state.scene.children[3].children;
-		console.log("partsGroupObjects", partsGroupObjects);
+				// DragControls уже обновил свой raycaster; доп. setFromCamera не обязателен
+				const hits = controls.raycaster.intersectObjects(others, true);
+				if (!hits.length) return;
 
-		let selectedObject = null;
-		let otherObjects = [];
+				const hit = hits[0];
+				const point = hit.point.clone();
+				const attachTo = hit.object.name;
+				const localNormal = hit.normal;
 
-		partsGroupObjects.map((group) => {
-			if (group.name === "dragPart" + selectedID) {
-				selectedObject = group;
-			} else {
-				otherObjects.push(group);
+				const intersectPartGroupObject = hit.object.parent;
+				if (!intersectPartGroupObject) return;
+
+				const intersectPart = parts.find((p) => p.objectName === intersectPartGroupObject.name) || null;
+				if (!intersectPart) return;
+
+				let finalPosition = point.clone();
+				let finalRotation = new THREE.Euler();
+				if (attachTo === "side") {
+					// Transform normal from local to world space using part's rotation
+					const partRotation = new THREE.Euler(...intersectPart.rot);
+					const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(partRotation);
+					const normal = localNormal.applyMatrix4(rotationMatrix).normalize();
+
+					// Convert normal to rotation using quaternion
+					// Calculate the rotation from defaultUp to our normal
+					const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+					// Convert quaternion to euler angles
+					finalRotation.setFromQuaternion(quaternion);
+
+					const size = selectedPart.size;
+					const offset = new THREE.Vector3(0, -size[1] / 2, 0).applyQuaternion(quaternion);
+					finalPosition.sub(offset);
+				} else if (attachTo === "front" || attachTo === "back") {
+					const size = selectedPart.size;
+					const offset = attachTo === "front" ? size[2] / 2 : -size[2] / 2;
+					finalPosition.set(point.x, point.y, point.z + offset);
+					finalRotation.copy(new THREE.Euler(...intersectPart.rot));
+				} else {
+					finalPosition.copy(point);
+					finalRotation.copy(new THREE.Euler());
+				}
+
+				e.object.position.copy(finalPosition);
+				e.object.rotation.copy(finalRotation);
+			};
+
+			const dragend = (e) => {
+				console.log("END", e.object.name);
+
+				orbit.current.enabled = true;
+				const part = parts.find((p) => p.objectName === e.object.name);
+				if (!part) return;
+				setPartsStorage(
+					produce((draft) => {
+						const found = draft.parts.find((p) => p.id === part.id);
+						if (!found) return;
+						found.drag = false;
+						// можно ещё сохранить финальную pos/rot сюда
+						found.pos = [e.object.position.x, e.object.position.y, e.object.position.z];
+						found.rot = [e.object.rotation.x, e.object.rotation.y, e.object.rotation.z];
+					})
+				);
+			};
+
+			console.log("addEventListeners");
+			controls.addEventListener("dragstart", dragstart);
+			controls.addEventListener("drag", drag);
+			controls.addEventListener("dragend", dragend);
+			return controls;
+		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		[parts]
+	);
+
+	const controlsRef = useRef(null);
+	const partsGroupObjects = scene.children.filter((obj) => obj.name.includes("drag"));
+
+	useEffect(() => {
+		if (controlsRef.current) {
+			if (partsGroupObjects.length !== controlsRef.current.objects.length) {
+				controlsRef.current?.dispose();
+				controlsRef.current = null;
+				console.log("delete Controls");
 			}
-		});
-		if (otherObjects.length === 0 || selectedObject === null) return;
-		//console.log("otherObjects", otherObjects, "selectedObject", selectedObject);
-
-		const intersects = raycaster.intersectObjects(otherObjects);
-		if (intersects.length > 0) {
-			const firstIntersect = intersects[0];
-
-			const object = firstIntersect.object;
-			const attachTo = object.name;
-			const point = firstIntersect.point;
-			const localNormal = firstIntersect.normal;
-
-			const intersectPartGroupObject = object.parent.parent;
-			if (!intersectPartGroupObject) return;
-
-			const intersectPart = parts.find((p) => p.objectName === intersectPartGroupObject.name) || null;
-			if (!intersectPart) return;
-
-			let euler = new THREE.Euler();
-			let finalPosition = new THREE.Vector3();
-			if (attachTo === "side") {
-				// Transform normal from local to world space using part's rotation
-				const partRotation = new THREE.Euler(...intersectPart.rot);
-				const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(partRotation);
-				const normal = localNormal.clone().applyMatrix4(rotationMatrix);
-
-				// Convert normal to rotation using quaternion
-				const normalVector = new THREE.Vector3(normal.x, normal.y, normal.z);
-				const defaultUp = new THREE.Vector3(0, 1, 0);
-				const quaternion = new THREE.Quaternion();
-
-				// Calculate the rotation from defaultUp to our normal
-				quaternion.setFromUnitVectors(defaultUp, normalVector);
-
-				// Convert quaternion to euler angles
-				euler = new THREE.Euler().setFromQuaternion(quaternion);
-
-				// Calculate position offset based on part size and rotation
-				const size = selectedPart.size;
-
-				// Create rotation matrix from our quaternion
-				const rotMatrix = new THREE.Matrix4().makeRotationFromQuaternion(quaternion);
-
-				// Calculate the offset vector in local space
-				const offsetVector = new THREE.Vector3(0, -size[1] / 2, 0);
-				// Transform the offset vector by our rotation
-				offsetVector.applyMatrix4(rotMatrix);
-
-				// Apply the offset to the intersection point
-				finalPosition = [point.x - offsetVector.x, point.y - offsetVector.y, point.z - offsetVector.z];
-
-				//transformPart(setPartsStorage, selectedID, finalPosition, [euler.x, euler.y, euler.z]);
-			} else if (attachTo === "front" || attachTo === "back") {
-				// Calculate position offset based on part size
-				const size = selectedPart.size;
-				const offset = attachTo === "front" ? size[2] / 2 : -size[2] / 2;
-				finalPosition = [point.x, point.y, point.z + offset];
-
-				//transformPart(setPartsStorage, selectedID, finalPosition, part.rot);
-			}
-			const quaternion = new THREE.Quaternion().setFromEuler(euler);
-			selectedObject.matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(finalPosition), quaternion, new THREE.Vector3(1, 1, 1));
 		}
-	});
+
+		if (!partsGroupObjects.length) return;
+		if (!controlsRef.current) {
+			console.log("createControls");
+			controlsRef.current = createControls(partsGroupObjects);
+		}
+	}, [partsGroupObjects, createControls, parts, setPartsStorage]);
+
+	return (
+		<>
+			{parts.map((part) => (
+				<CreatePart key={part.id} part={part} />
+			))}
+
+			{parts.length == 0 && (
+				<Billboard
+					follow={true}
+					lockX={false}
+					lockY={false}
+					lockZ={false} // Lock the rotation on the z axis (default=false)
+				>
+					<Text position={[0, 0, 0]} fontSize={1} color="white" anchorX="center" anchorY="middle">
+						Select new part to be root of the vehicle
+					</Text>
+				</Billboard>
+			)}
+		</>
+	);
+}
+
+/*
+
+
+
+//const quaternion = new THREE.Quaternion().setFromEuler(euler);
+				//e.object.matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(finalPosition), quaternion, new THREE.Vector3(1, 1, 1));
 
 	const handleClickPart = (id) => {};
 
@@ -182,80 +243,4 @@ export default function Craft({ orbit }) {
 			})
 		);
 	};
-
-	return (
-		<>
-			
-				{parts.map((part) => (
-					<CreatePart
-						key={part.pos}
-						part={part}
-						handleClickPart={handleClickPart}
-						handleStartDragPart={handleStartDragPart}
-						handleCopyPart={handleCopyPart}
-						handleEndDragPart={handleEndDragPart}
-					/>
-				))}
-		
-
-			{parts.length == 0 && (
-				<Billboard
-					follow={true}
-					lockX={false}
-					lockY={false}
-					lockZ={false} // Lock the rotation on the z axis (default=false)
-				>
-					<Text position={[0, 0, 0]} fontSize={1} color="white" anchorX="center" anchorY="middle">
-						Select new part to be root of the vehicle
-					</Text>
-				</Billboard>
-			)}
-		</>
-	);
-}
-
-/*
-			<mesh>
-				<sphereGeometry args={[0.1, 16, 16]} />
-				<meshStandardMaterial color="white" />
-			</mesh>
-
-			<mesh name="placementPlane" rotation={[-Math.PI / 2, 0, 0]} position={[0, 0, 0]} visible={false}>
-				<planeGeometry args={[100, 100]} />
-				<meshBasicMaterial />
-			</mesh>
-
-			let closest = null;
-			let minDist = MAGNET_THRESHOLD;
-
-			// Текущие attach points ghostPart (если есть в attachPointsMap)
-			const mousePoints = attachPointsMap[mousePart.id];
-			const ghostPoints = attachPointsMap[ghostPart.id];
-			if (!ghostPoints | !mousePoints) return;
-
-			// Перебираем все детали, кроме ghostPart
-			for (const [partId, points] of Object.entries(attachPointsMap)) {
-				if (partId === ghostPart.id) continue;
-				if (partId === mousePart.id) continue;
-
-				for (let index = 0; index < mousePoints.length; index++) {
-					const mousePoint = mousePoints[index];
-					const ghostPoint = ghostPoints[index];
-					for (const p of points) {
-						const dist = mousePoint.distanceTo(p);
-						if (dist < minDist) {
-							minDist = dist;
-							closest = { ghostPoint: ghostPoint, partPoint: p };
-						}
-					}
-				}
-			}
-
-			if (closest) {
-				const offset = new THREE.Vector3().subVectors(closest.partPoint, closest.ghostPoint);
-				const newPos = new THREE.Vector3(...ghostPart.pos).add(offset.multiply(new THREE.Vector3(0.5, 0.5, 0.5)));
-				setGhostPart((prev) => (prev ? { ...prev, pos: [newPos.x, newPos.y, newPos.z] } : prev));
-			} else {
-				setGhostPart((prev) => (prev ? { ...prev, pos: mousePart.pos } : prev));
-			}
-			*/
+*/

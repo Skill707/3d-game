@@ -29,7 +29,6 @@ function AddButton({ position = [0, 0, 0], name }) {
 }
 
 export const Segment = ({ segment, part }) => {
-	const segmentRef = useRef();
 
 	const geometry = useMemo(() => {
 		const positions = [];

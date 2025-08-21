@@ -1,14 +1,10 @@
-import { DragControls, Text, Billboard, Edges, Outlines } from "@react-three/drei";
+import { Text, Billboard } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
-import { useRef } from "react";
-import * as THREE from "three";
-import { matrix4ToEuler, matrix4ToVector3 } from "./transformUtils";
-import { useThree } from "@react-three/fiber";
 
 // Регистрируем все доступные детали здесь
 
 const blockShape = {
-	sections: [
+	segments: [
 		{
 			points: [
 				[-0.5, 0.5, 0],
@@ -35,14 +31,14 @@ const blockShape = {
 };
 
 const fuselageShape = {
-	sections: [
+	segments: [
 		{ points: generateCirclePoints([0, 0, 0], 16, 1), pos: [0, 0, -1], radius: 1, closed: false, extendeble: true },
 		{ points: generateCirclePoints([0, 0, 0], 16, 1), pos: [0, 0, 1], radius: 1, closed: false },
 	],
 };
 
 const fueltankShape = {
-	sections: [
+	segments: [
 		{ points: generateCirclePoints([0, 0, 0], 16, 1), pos: [0, 0, -1], radius: 1, closed: true },
 		{ points: generateCirclePoints([0, 0, 0], 16, 1), pos: [0, 0, 1], radius: 1, closed: true },
 	],
@@ -75,23 +71,59 @@ export class Part {
 	}
 }
 
-export function CreatePart({ part, handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart }) {
-	const ref = useRef(null);
-	const button = useRef(null);
-		const { scene  } = useThree();
-	
-
-	if (ref.current) {
-		ref.current.userData = part;
-	}
-	console.log(ref.current);
-
-	//const euler = new THREE.Euler().fromArray(part.rot);
-	//const quaternion = new THREE.Quaternion().setFromEuler(euler);
-	//const matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(part.pos), quaternion, new THREE.Vector3(1, 1, 1));
+export function CreatePart({ part }) {
+	//console.log("CreatePart update");
 
 	return (
-		/*<DragControls
+		<group name={part.objectName} position={part.pos} rotation={part.rot}>
+			{part.shape && <ShapedPart part={part} />}
+			<Billboard
+				follow={true}
+				lockX={false}
+				lockY={false}
+				lockZ={false} // Lock the rotation on the z axis (default=false)
+			>
+				<Text name="text" position={[0, 2, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
+					{part.name + part.id}
+				</Text>
+			</Billboard>
+		</group>
+	);
+}
+
+function generateCirclePoints(center, count = 8, radius = 1) {
+	const points = [];
+	for (let i = 0; i < count; i++) {
+		const angle = (i / count) * Math.PI * 2;
+		points.push([center[0] + Math.cos(angle) * radius, center[1] + Math.sin(angle) * radius, center[2]]);
+	}
+	return points;
+}
+
+/*
+	const button = useRef(null);
+
+onClick={(e) => {
+					if (!handleClickPart) return;
+					//e.stopPropagation();
+					handleClickPart(part.id);
+					console.log(`Part clicked: ${part.name} with ID: ${part.id}`);
+				}}
+			onPointerDown={(e) => {
+				button.current = typeof e.button === "number" ? e.button : e.nativeEvent && e.nativeEvent.button;
+			}}
+			onPointerUp={(e) => {
+				button.current = null;
+			}}*/
+
+/*
+, handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 
+	const euler = new THREE.Euler().fromArray(part.rot);
+	const quaternion = new THREE.Quaternion().setFromEuler(euler);
+	const matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(part.pos), quaternion, new THREE.Vector3(1, 1, 1));
+*/
+
+/*<DragControls
 			name={part.objectName}
 			matrix={matrix}
 			autoTransform={false}
@@ -121,45 +153,3 @@ export function CreatePart({ part, handleClickPart, handleStartDragPart, handleC
 				},
 			}}
 		>*/
-		<group
-			ref={ref}
-			name={part.objectName}
-			position={part.pos}
-			rotation={part.rot}
-			/*onClick={(e) => {
-					if (!handleClickPart) return;
-					//e.stopPropagation();
-					handleClickPart(part.id);
-					console.log(`Part clicked: ${part.name} with ID: ${part.id}`);
-				}}*/
-			onPointerDown={(e) => {
-				button.current = typeof e.button === "number" ? e.button : e.nativeEvent && e.nativeEvent.button;
-			}}
-			onPointerUp={(e) => {
-				button.current = null;
-			}}
-		>
-			{part.shape && <ShapedPart part={part} />}
-			<Billboard
-				follow={true}
-				lockX={false}
-				lockY={false}
-				lockZ={false} // Lock the rotation on the z axis (default=false)
-			>
-				<Text name="text" position={[0, 2, 0]} fontSize={0.25} color="white" anchorX="center" anchorY="middle">
-					{part.name + part.id}
-					
-				</Text>
-			</Billboard>
-		</group>
-	);
-}
-
-function generateCirclePoints(center, count = 8, radius = 1) {
-	const points = [];
-	for (let i = 0; i < count; i++) {
-		const angle = (i / count) * Math.PI * 2;
-		points.push([center[0] + Math.cos(angle) * radius, center[1] + Math.sin(angle) * radius, center[2]]);
-	}
-	return points;
-}
