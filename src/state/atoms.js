@@ -1,16 +1,18 @@
 import { atom } from "jotai";
+import { Part } from "../utils/partFactory";
 
 // Функция для загрузки деталей из localStorage
 const loadPartsFromStorage = () => {
 	try {
 		const stored = localStorage.getItem("craftParts");
-		if (stored) {
+		
+		if (stored && stored != undefined) {
 			return JSON.parse(stored);
 		}
 	} catch (e) {
 		console.error("Error loading parts from localStorage:", e);
 	}
-	return { parts: [], selectedID: null };
+	return { parts: [new Part({ id: 0, name: "fueltank" })], selectedID: 0 };
 };
 
 // Базовый атом с начальным значением из localStorage
@@ -31,6 +33,5 @@ export const partsAtom = atom(
 			console.error("Error saving parts to localStorage:", e);
 		}
 		console.log("partsAtom update");
-		
 	}
 );

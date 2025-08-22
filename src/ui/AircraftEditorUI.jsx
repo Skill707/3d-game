@@ -1,5 +1,5 @@
-import { SidebarUI } from "./SidebarUI";
-import { SideButtons } from "./SideButtons/index";
+import { SidebarUI } from "./SidebarUI/SidebarUI";
+import { SideButtons } from "./SideButtons/SideButtons";
 
 export function AircraftEditorUI() {
 	return (

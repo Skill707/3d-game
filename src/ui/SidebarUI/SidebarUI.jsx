@@ -1,45 +1,91 @@
 import React, { useState } from "react";
 import { Sidebar } from "./Sidebar";
-import { Menu } from './panels/Menu';
-import { DesignerPanel } from './panels/DesignerPanel';
-import { AddPartsPanel } from './panels/AddPartsPanel';
-import { PartPropertiesPanel } from './panels/PartPropertiesPanel';
-import { SearchPartsPanel } from './panels/SearchPartsPanel';
-import { SymmetryPanel } from './panels/SymmetryPanel';
-import { ActivationGroupsPanel } from './panels/ActivationGroupsPanel';
-import { ViewOptionsPanel } from './panels/ViewOptionsPanel';
+import { Menu } from "./panels/Menu";
+import { DesignerPanel } from "./panels/DesignerPanel";
+import { AddPartsPanel } from "./panels/AddPartsPanel";
+import { PartPropertiesPanel } from "./panels/PartPropertiesPanel";
+import { SearchPartsPanel } from "./panels/SearchPartsPanel";
+import { SymmetryPanel } from "./panels/SymmetryPanel";
+import { ActivationGroupsPanel } from "./panels/ActivationGroupsPanel";
+import { ViewOptionsPanel } from "./panels/ViewOptionsPanel";
 import { AnimatePresence } from "framer-motion";
-
-const mockPart = {
-  name: 'Fuel Tank',
-  mass: '1.67t',
-  price: '$5,047',
-  sections: ['RESIZABLE PART', 'FUEL TANK', 'ADDITIONAL SETTINGS', 'TINKER PANEL', 'PART STYLE']
-};
+import { useAtom } from "jotai";
+import { partsAtom } from "../../state/atoms";
+import { produce } from "immer";
+import { segmentPoinsRegistry } from "../../utils/partFactory";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
 	const [activeSubToolId, setActiveSubToolId] = useState("MOVE");
-	const [selectedPart, setSelectedPart] = useState(null);
+
+	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+	const selectedPart = partsStorage.parts.find((p) => p.id === partsStorage.selectedID) || null;
 
 	const handlePanelToggle = (panelId) => {
 		setActivePanel((current) => (current === panelId ? null : panelId));
 	};
 
-  React.useEffect(() => {
-    if (activePanel === 'PART_PROPERTIES') {
-        // Initially show empty state
-        setSelectedPart(null);
-        // After 2 seconds, simulate selecting a part to show the full panel
-        const timer = setTimeout(() => {
-            setSelectedPart(mockPart);
-        }, 2000);
-        return () => clearTimeout(timer);
-    } else {
-        // Clear selection when panel is closed
-        setSelectedPart(null);
-    }
-  }, [activePanel]);
+	/*const handleChangeMode = (id, newName, newSize, newShape) => {
+		setPartsStorage(
+			produce((draft) => {
+				const part = draft.parts.find((p) => p.id === id);
+				if (!part) {
+					console.warn("part not found");
+					return;
+				}
+				part.name = newName;
+				part.size = newSize;
+				part.shape = newShape;
+			})
+		);
+	};*/
+
+	const handleChangeMode = (id, segmentName, newShapeName) => {
+		setPartsStorage(
+			produce((draft) => {
+				const part = draft.parts.find((p) => p.id === id);
+				if (!part) {
+					console.warn("part not found");
+					return;
+				}
+				if (segmentName === "front") {
+					part.shape.segments[1] = { ...part.shape.segments[1], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+					part.attachedParts.forEach((par) => {
+						const found = draft.parts.find((p) => p.id === par.id);
+						if (found) {
+							found.shape.segments[0] = { ...found.shape.segments[0], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+						}
+					});
+				} else if (segmentName === "back") {
+					const newSegment = { ...part.shape.segments[0], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+					part.shape.segments[0] = newSegment;
+					part.attachedParts.forEach((par) => {
+						const found = draft.parts.find((p) => p.id === par.id);
+						if (found) {
+							found.shape.segments[1] = { ...found.shape.segments[1], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+						}
+					});
+				}
+			})
+		);
+		/*
+			(prev) => {
+			const parts = prev.parts.map((p) => {
+				if (p.id === id) {
+					if (segmentName === "front") {
+						const segments = [...p.shape.segments];
+						//segments[1] = { ...segments[1], ...segmentShape, shapeName: newShapeName };
+						p.shape = { ...p.shape, segments: segments };
+					} else if (segmentName === "back") {
+						//p.shape.segments[0] = { ...p.shape.segments[0], ...segmentShape, shapeName: newShapeName };
+					}
+				}
+			});
+
+			return { ...prev, parts, selectedID: selectedPart.id };
+		};
+		*/
+	};
 
 	return (
 		<div className="SidebarUI-container">
@@ -57,7 +103,12 @@ export function SidebarUI() {
 				{activePanel === "ADD_PARTS" && <AddPartsPanel key="add-parts" onClose={() => handlePanelToggle("ADD_PARTS")} />}
 				{activePanel === "SEARCH" && <SearchPartsPanel key="search-parts" onClose={() => handlePanelToggle("SEARCH")} />}
 				{activePanel === "PART_PROPERTIES" && (
-					<PartPropertiesPanel key="part-props" onClose={() => handlePanelToggle("PART_PROPERTIES")} selectedPart={selectedPart} />
+					<PartPropertiesPanel
+						key="part-props"
+						onClose={() => handlePanelToggle("PART_PROPERTIES")}
+						selectedPart={selectedPart}
+						handleChangeMode={handleChangeMode}
+					/>
 				)}
 				{activePanel === "SYMMETRY" && <SymmetryPanel key="symmetry" onClose={() => handlePanelToggle("SYMMETRY")} />}
 				{activePanel === "ACTIVATION_GROUPS" && (

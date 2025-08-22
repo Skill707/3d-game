@@ -1,5 +1,5 @@
-import {  Text } from "@react-three/drei";
-import { useMemo, useRef } from "react";
+import { Text } from "@react-three/drei";
+import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import { AttachPoint } from "./ConnectingSurface";
 
@@ -19,7 +19,7 @@ function AddButton({ position = [0, 0, 0], name }) {
 		<group position={position}>
 			<mesh>
 				<boxGeometry args={[0.5, 0.5, 0.05]} />
-				<meshBasicMaterial color="green" />					
+				<meshBasicMaterial color="green" />
 			</mesh>
 			<Text position={[0, 0, 0.06]} fontSize={0.5} color="white" anchorX="center" anchorY="middle">
 				{name}
@@ -29,7 +29,7 @@ function AddButton({ position = [0, 0, 0], name }) {
 }
 
 export const Segment = ({ segment, part }) => {
-
+	
 	const geometry = useMemo(() => {
 		const positions = [];
 
@@ -69,11 +69,15 @@ export const Segment = ({ segment, part }) => {
 		return geo;
 	}, [segment]);
 
+	useEffect(() => {
+		return () => geometry.dispose();
+	}, [geometry]);
+
 	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: part.selected ? "orange" : part.color, side: THREE.DoubleSide }), [part]);
 
 	return (
 		<>
-			{segment.closed && <mesh name={segment.pos[2] > 0 ? "front" : "back"} geometry={geometry} material={material} />}
+			{<mesh name={segment.pos[2] > 0 ? "front" : "back"} geometry={geometry} material={material} visible={segment.closed} />}
 			{segment.extendeble && <AddButton position={segment.pos} name={"+"} />}
 			{part.selected && <AttachPoint position={segment.pos} />}
 		</>

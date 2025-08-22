@@ -23,6 +23,7 @@ import "./styles/DesignerPanel.css";
 import { useAtom } from "jotai";
 import { partsAtom } from "../../../state/atoms";
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const subTools = [
 	{ id: "MOVE", icon: <CursorIcon />, title: "MOVE PART TOOL", color: "#00A8FC" },
 	{ id: "TRANSLATE", icon: <TranslateIcon />, title: "TRANSLATE PART TOOL", color: "#3BA55D" },
@@ -240,9 +241,30 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 						<OptionStepper label="Direction" value={settings.direction} onChange={handleChange("direction")} options={["Local", "World"]} />
 						<hr className="tool-separator" />
 						<h3 className="tool-sub-header">POSITION</h3>
-						<NumericStepper label="X-Pos" value={selectedPartPos[0]} onChange={handleChange("xPos")} step={0.001} precision={3} labelColor="#ED4245" />
-						<NumericStepper label="Y-Pos" value={selectedPartPos[1]} onChange={handleChange("yPos")} step={0.001} precision={3} labelColor="#3BA55D" />
-						<NumericStepper label="Z-Pos" value={selectedPartPos[2]} onChange={handleChange("zPos")} step={0.001} precision={3} labelColor="#3B82F6" />
+						<NumericStepper
+							label="X-Pos"
+							value={selectedPartPos[0]}
+							onChange={handleChange("xPos")}
+							step={0.001}
+							precision={3}
+							labelColor="#ED4245"
+						/>
+						<NumericStepper
+							label="Y-Pos"
+							value={selectedPartPos[1]}
+							onChange={handleChange("yPos")}
+							step={0.001}
+							precision={3}
+							labelColor="#3BA55D"
+						/>
+						<NumericStepper
+							label="Z-Pos"
+							value={selectedPartPos[2]}
+							onChange={handleChange("zPos")}
+							step={0.001}
+							precision={3}
+							labelColor="#3B82F6"
+						/>
 					</>
 				);
 			}
@@ -351,9 +373,10 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 						</div>
 						<h4 className="connection-attach-points">{attachPoints.length} x ATTACH POINTS</h4>
 						<div className="connection-list">
-							{attachPoints.map((conn) => (
-								<ConnectionItem key={conn.id} connection={conn} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />
-							))}
+							{selectedPart.attachedPartIDs.map((id) => {
+								const part = parts.find((p) => p.id === id);
+								return <ConnectionItem key={id} connection={part} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />;
+							})}
 							<button className="add-connection-btn" onClick={handleAddConnection}>
 								<AddIcon />
 								<span>Add New Connection</span>

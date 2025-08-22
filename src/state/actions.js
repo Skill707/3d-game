@@ -1,6 +1,7 @@
 import { produce } from "immer";
 import { canAttachParts, wouldFormCycle } from "../utils/attachmentUtils";
 import { calculatePositionDelta, calculateRotationDelta, updateRelativeTransform } from "../utils/transformUtils";
+import { Part } from "../utils/partFactory";
 
 export function addPart(setPartsStorage, part) {
 	setPartsStorage(
@@ -86,8 +87,6 @@ export function transformPart2(setPartsStorage, id, newPos, newRot) {
 	);
 }
 
-
-
 export function selectPartByID(setPartsStorage, id) {
 	setPartsStorage((prev) => {
 		const parts = prev.parts.map((part) => (part.id === id ? { ...part, selected: true } : { ...part, selected: false }));
@@ -165,5 +164,5 @@ export function clearAttachmentsOfPartsByID(setPartsStorage, id) {
 
 export function clearSavedParts(setPartsStorage) {
 	localStorage.removeItem("craftParts");
-	setPartsStorage({ parts: [], selectedID: null });
+	setPartsStorage({ parts: [new Part({ id: 0, name: "fueltank" })], selectedID: 0 });
 }

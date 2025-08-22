@@ -3,6 +3,9 @@ import { Close as CloseIcon, Settings as GearIcon, FileUpload as UploadIcon, Cam
 import { motion } from 'framer-motion';
 import { Box, Typography, Button, IconButton, Stack, Paper } from '@mui/material';
 import './styles/Menu.css';
+import { useAtom } from 'jotai';
+import { partsAtom } from '../../../state/atoms';
+import { Part } from '../../../utils/partFactory';
 
 
 
@@ -13,6 +16,7 @@ const panelVariants = {
 };
 
 export function Menu({ onClose }) {
+    const [partsStorage, setPartsStorage] = useAtom(partsAtom);
     const menuButtons1 = ["DOWNLOAD CRAFTS", "NEW CRAFT", "LOAD CRAFT", "SAVE CRAFT"];
     const menuButtons2 = ["REPORT A BUG", "EXIT DESIGNER"];
 
@@ -34,7 +38,9 @@ export function Menu({ onClose }) {
 
                 <Stack className="menu-section" spacing={0}>
                     {menuButtons1.map(label => 
-                        <Button key={label} fullWidth className="menu-button">{label}</Button>
+                        <Button key={label} fullWidth className="menu-button" onClick={()=>{
+                            setPartsStorage({ parts: [new Part({ id: 0, name: "fueltank" })], selectedID: 0 });
+                        }}>{label}</Button>
                     )}
                 </Stack>
                 

@@ -4,7 +4,7 @@ import { Box, Paper, Typography, IconButton, Card, CardContent } from "@mui/mate
 import { Close as CloseIcon } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import "./styles/AddPartsPanel.css";
-import { Part } from "../../../utils/partFactory";
+import { Part, shapeRegistry } from "../../../utils/partFactory";
 import { partsAtom } from "../../../state/atoms";
 import { addPart } from "../../../state/actions";
 import { PartIconView } from "../components/PartIconView";
@@ -14,13 +14,7 @@ const panelVariants = {
 	visible: { x: 0, opacity: 1, transition: { type: "tween", duration: 0.3, ease: "easeOut" } },
 	exit: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
 };
-
-const shapeRegistry = {
-	fueltank: { size: [2, 2, 2] },
-	block: { size: [1, 1, 1] },
-	fuselage: { size: [2, 2, 2] },
-};
-
+	
 export function AddPartsPanel({ onClose }) {
 	const parts = React.useMemo(() => {
 		const arr = [];

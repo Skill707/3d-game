@@ -25,7 +25,7 @@ export function ConnectionItem({ connection, onToggle, onDelete }) {
 					<ConnectionTypeIcon type={connection.type} />
 				</div>
 				<div className="connection-text">
-					<span className="connection-name">{connection.name}</span>
+					<span className="connection-name">{connection.name + connection.id}</span>
 					{connection.connectedTo && <span className="connection-target">{connection.connectedTo}</span>}
 				</div>
 			</div>
