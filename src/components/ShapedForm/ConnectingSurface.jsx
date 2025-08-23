@@ -1,17 +1,7 @@
 import { useMemo, useEffect } from "react";
 import * as THREE from "three";
-import { MeshStandardMaterial } from "three";
 
-export const AttachPoint = ({ position }) => {
-	return (
-		<mesh name="attachPoint" position={position}>
-			<sphereGeometry args={[0.1, 16, 16]} />
-			<meshStandardMaterial color="cyan" />
-		</mesh>
-	);
-};
-
-export const ConnectingSurface = ({ segmentA, segmentB, part }) => {
+export const ConnectingSurface = ({ segmentA, segmentB, material }) => {
 	// нормализация по углу вокруг центра
 	function normalizeSection(section) {
 		const cx = section.reduce((s, p) => s + p[0], 0) / section.length;
@@ -110,14 +100,7 @@ export const ConnectingSurface = ({ segmentA, segmentB, part }) => {
 		return () => calcGeometries.forEach((geometry) => geometry.dispose());
 	}, [calcGeometries]);
 
-	const material = useMemo(() => new MeshStandardMaterial({ color: part.selected ? "orange" : part.color + 10, side: THREE.DoubleSide }), [part]);
-
-	return (
-		<>
-			{calcGeometries && calcGeometries.map((geo, index) => <mesh name={"side"} geometry={geo} material={material} />)}
-			{part.selected && <AttachPoint position={[0, -1, 0]} />}
-		</>
-	);
+	if (calcGeometries) return calcGeometries.map((geo, index) => <mesh name={"side"} userData={index} geometry={geo} material={material} />);
 };
 
 /*

@@ -1,4 +1,4 @@
-import React, { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import { useAtom } from "jotai";
 import { Box, Paper, Typography, IconButton, Card, CardContent } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
@@ -16,7 +16,7 @@ const panelVariants = {
 };
 	
 export function AddPartsPanel({ onClose }) {
-	const parts = React.useMemo(() => {
+	const parts = useMemo(() => {
 		const arr = [];
 		for (let shape in shapeRegistry) {
 			arr.push({

@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "./panels/Menu";
 import { DesignerPanel } from "./panels/DesignerPanel";
@@ -12,7 +12,7 @@ import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
 import { partsAtom } from "../../state/atoms";
 import { produce } from "immer";
-import { segmentPoinsRegistry } from "../../utils/partFactory";
+import { generatePoints } from "../../utils/partFactory";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -25,23 +25,80 @@ export function SidebarUI() {
 		setActivePanel((current) => (current === panelId ? null : panelId));
 	};
 
-	/*const handleChangeMode = (id, newName, newSize, newShape) => {
+	const handleChangeSegmentProperties = (segmentName, newProperties) => {
 		setPartsStorage(
 			produce((draft) => {
-				const part = draft.parts.find((p) => p.id === id);
-				if (!part) {
-					console.warn("part not found");
-					return;
+				const part = draft.parts.find((p) => p.id === partsStorage.selectedID);
+				part.shapeSegments[segmentName] = { ...part.shapeSegments[segmentName], ...newProperties };
+				let props = [];
+				for (const key in newProperties) {
+					props.push(key);
 				}
-				part.name = newName;
-				part.size = newSize;
-				part.shape = newShape;
+
+				if (props[0] === "corners") {
+					part.shapeSegments[segmentName].corner1 = part.shapeSegments[segmentName].corners;
+					part.shapeSegments[segmentName].corner2 = part.shapeSegments[segmentName].corners;
+					part.shapeSegments[segmentName].corner3 = part.shapeSegments[segmentName].corners;
+					part.shapeSegments[segmentName].corner4 = part.shapeSegments[segmentName].corners;
+				} else if (props[0] === "length") {
+					part.shapeSegments.front.pos[2] = part.shapeSegments.center.length / 2;
+					part.shapeSegments.back.pos[2] = -part.shapeSegments.center.length / 2;
+				} else if (props[0] === "xOffset") {
+					part.shapeSegments.front.pos[0] = part.shapeSegments.center.xOffset / 2;
+					part.shapeSegments.back.pos[0] = -part.shapeSegments.center.xOffset / 2;
+				} else if (props[0] === "zOffset") {
+					part.shapeSegments.front.pos[1] = part.shapeSegments.center.zOffset / 2;
+					part.shapeSegments.back.pos[1] = -part.shapeSegments.center.zOffset / 2;
+				} else if (props[0] === "pinchX" || props[0] === "pinchY" || props[0] === "slantF" || props[0] === "slantB") {
+					part.shapeSegments.front.points = generatePoints(
+						part.shapeSegments.front.pointsCount,
+						[part.shapeSegments.front.width, part.shapeSegments.front.height],
+						[
+							part.shapeSegments.front.corner1 * 0.01,
+							part.shapeSegments.front.corner2 * 0.01,
+							part.shapeSegments.front.corner3 * 0.01,
+							part.shapeSegments.front.corner4 * 0.01,
+						],
+						part.shapeSegments.center.pinchX * 0.01,
+						part.shapeSegments.center.pinchY * 0.01,
+						part.shapeSegments.center.slantF * 0.01
+					);
+					part.shapeSegments.back.points = generatePoints(
+						part.shapeSegments.back.pointsCount,
+						[part.shapeSegments.back.width, part.shapeSegments.back.height],
+						[
+							part.shapeSegments.back.corner1 * 0.01,
+							part.shapeSegments.back.corner2 * 0.01,
+							part.shapeSegments.back.corner3 * 0.01,
+							part.shapeSegments.back.corner4 * 0.01,
+						],
+						part.shapeSegments.center.pinchX * 0.01,
+						part.shapeSegments.center.pinchY * 0.01,
+						part.shapeSegments.center.slantB * 0.01
+					);
+				}
+
+				if (segmentName !== "center") {
+					part.shapeSegments[segmentName].points = generatePoints(
+						part.shapeSegments[segmentName].pointsCount,
+						[part.shapeSegments[segmentName].width, part.shapeSegments[segmentName].height],
+						[
+							part.shapeSegments[segmentName].corner1 * 0.01,
+							part.shapeSegments[segmentName].corner2 * 0.01,
+							part.shapeSegments[segmentName].corner3 * 0.01,
+							part.shapeSegments[segmentName].corner4 * 0.01,
+						],
+						part.shapeSegments.center.pinchX * 0.01,
+						part.shapeSegments.center.pinchY * 0.01,
+						segmentName === "back " ? part.shapeSegments.center.slantB * 0.01 : part.shapeSegments.center.slantF * 0.01
+					);
+				}
 			})
 		);
-	};*/
+	};
 
 	const handleChangeMode = (id, segmentName, newShapeName) => {
-		setPartsStorage(
+		/*	setPartsStorage(
 			produce((draft) => {
 				const part = draft.parts.find((p) => p.id === id);
 				if (!part) {
@@ -49,42 +106,24 @@ export function SidebarUI() {
 					return;
 				}
 				if (segmentName === "front") {
-					part.shape.segments[1] = { ...part.shape.segments[1], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+					part.shapeSegments.front = { ...part.shapeSegments.front, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
 					part.attachedParts.forEach((par) => {
 						const found = draft.parts.find((p) => p.id === par.id);
 						if (found) {
-							found.shape.segments[0] = { ...found.shape.segments[0], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+							found.shapeSegments.back = { ...found.shapeSegments.back, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
 						}
 					});
 				} else if (segmentName === "back") {
-					const newSegment = { ...part.shape.segments[0], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
-					part.shape.segments[0] = newSegment;
+					part.shapeSegments.back = { ...part.shapeSegments.back, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
 					part.attachedParts.forEach((par) => {
 						const found = draft.parts.find((p) => p.id === par.id);
 						if (found) {
-							found.shape.segments[1] = { ...found.shape.segments[1], shapeName: newShapeName, points: segmentPoinsRegistry[newShapeName] };
+							found.shapeSegments.front = { ...found.shapeSegments.front, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
 						}
 					});
 				}
 			})
-		);
-		/*
-			(prev) => {
-			const parts = prev.parts.map((p) => {
-				if (p.id === id) {
-					if (segmentName === "front") {
-						const segments = [...p.shape.segments];
-						//segments[1] = { ...segments[1], ...segmentShape, shapeName: newShapeName };
-						p.shape = { ...p.shape, segments: segments };
-					} else if (segmentName === "back") {
-						//p.shape.segments[0] = { ...p.shape.segments[0], ...segmentShape, shapeName: newShapeName };
-					}
-				}
-			});
-
-			return { ...prev, parts, selectedID: selectedPart.id };
-		};
-		*/
+		);*/
 	};
 
 	return (
@@ -98,6 +137,8 @@ export function SidebarUI() {
 						onClose={() => handlePanelToggle("DESIGNER")}
 						activeSubToolId={activeSubToolId}
 						setActiveSubToolId={setActiveSubToolId}
+						selectedPart={selectedPart}
+						handleChangeSegmentProperties={handleChangeSegmentProperties}
 					/>
 				)}
 				{activePanel === "ADD_PARTS" && <AddPartsPanel key="add-parts" onClose={() => handlePanelToggle("ADD_PARTS")} />}

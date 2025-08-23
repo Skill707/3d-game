@@ -3,7 +3,6 @@ import { motion } from "framer-motion";
 import { Box, Paper, Typography, IconButton, Accordion, AccordionSummary, AccordionDetails, Divider } from "@mui/material";
 import "./styles/PartPropertiesPanel.css";
 import { OptionStepper } from "../components/OptionStepper";
-import { segmentPoinsRegistry } from "../../../utils/partFactory";
 
 const panelVariants = {
 	hidden: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
@@ -21,11 +20,12 @@ export function PartPropertiesPanel({ onClose, selectedPart, handleChangeMode })
 			);
 		}
 
-		const modes = [];
-
-		for (const key in segmentPoinsRegistry) {
-			modes.push(key);
+		let segments = [];
+		for (const key in selectedPart.shapeSegments) {
+			segments.push(selectedPart.shapeSegments[key]);
 		}
+
+		const modes = [];
 
 		return (
 			<Box className="part-details">
@@ -45,8 +45,8 @@ export function PartPropertiesPanel({ onClose, selectedPart, handleChangeMode })
 					</Box>
 				</Box>
 				<Box className="part-sections">
-					{selectedPart.shape.segments &&
-						selectedPart.shape.segments.map((segment) => {
+					{segments &&
+						segments.map((segment) => {
 							return (
 								<Accordion key={0} defaultExpanded className="part-accordion">
 									<AccordionSummary

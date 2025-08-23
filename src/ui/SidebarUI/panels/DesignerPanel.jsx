@@ -1,4 +1,4 @@
-import React from "react";
+import { useState } from "react";
 import {
 	Close as CloseIcon,
 	NearMe as CursorIcon,
@@ -13,15 +13,13 @@ import {
 	Add as AddIcon,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
-import { Box, Paper, Typography, IconButton, Switch, FormControlLabel } from "@mui/material";
+import { Paper, IconButton, Switch, FormControlLabel } from "@mui/material";
 import { NumericStepper } from "../components/NumericStepper";
 import { OptionStepper } from "../components/OptionStepper";
 import { SensitivitySlider } from "../components/SensitivitySlider";
 import { SelectionChanger } from "../components/SelectionChanger";
 import { ConnectionItem } from "../components/ConnectionItem";
 import "./styles/DesignerPanel.css";
-import { useAtom } from "jotai";
-import { partsAtom } from "../../../state/atoms";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const subTools = [
@@ -84,17 +82,13 @@ const ColorPalette = () => {
 	);
 };
 
-export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) {
+export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, selectedPart, handleChangeSegmentProperties }) {
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
-	const shapeTypes = ["Profile", "Corners"];
-	const [currentShapeIndex, setCurrentShapeIndex] = React.useState(0);
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
-	const parts = partsStorage.parts;
-	const selectedID = partsStorage.selectedID;
-	const selectedPart = parts.find((p) => p.id === selectedID) || null;
+	const [seclectedSection, seclectSection] = useState("center");
+
 	const selectedPartPos = selectedPart ? selectedPart.pos : [0, 0, 0];
 
-	const [toolSettings, setToolSettings] = React.useState({
+	const [toolSettings, setToolSettings] = useState({
 		move: {
 			gridSize: 0.05,
 			attachmentAngle: 15,
@@ -103,39 +97,21 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 			gridSize: 0.05,
 			mode: "Connected",
 			direction: "Local",
-			xPos: 0,
-			yPos: 0,
-			zPos: 0,
+			xPos: selectedPart.pos[0],
+			yPos: selectedPart.pos[1],
+			zPos: selectedPart.pos[2],
 		},
 		rotate: {
 			angleStep: 15,
 			mode: "Connected",
 			direction: "Local",
 			sensitivity: 50,
-			xAngle: 90,
-			yAngle: 0,
-			zAngle: 0,
+			xAngle: selectedPart.rot[0],
+			yAngle: selectedPart.rot[1],
+			zAngle: selectedPart.rot[2],
 		},
 		reshape: {
-			gridSize: 0.05,
-			// Profile Shape
-			length: 2,
-			xOffset: 0,
-			zOffset: 0,
-			pinch: 0, // 0 will be displayed as 'None'
-			slant: 0,
-			// Corners Shape
-			width: 1.45,
-			depth: 1.5,
-			cornerRadius: 100,
-			corner1: 100,
-			corner2: 100,
-			corner3: 100,
-			corner4: 100,
-			clamp1: -100,
-			clamp2: 100,
-			clamp3: -100,
-			clamp4: 100,
+			gridSize: 0.25,
 		},
 		paint: {
 			target: "Primary",
@@ -155,6 +131,8 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 		},
 	});
 
+	const segments = selectedPart.shapeSegments;
+
 	const handleSettingChange = (tool) => (field) => (newValue) => {
 		setToolSettings((prev) => ({
 			...prev,
@@ -165,9 +143,16 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 		}));
 	};
 
-	const handlePrevShape = () => setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length);
-	const handleNextShape = () => setCurrentShapeIndex((prev) => (prev + 1) % shapeTypes.length);
-	const currentShapeType = shapeTypes[currentShapeIndex];
+	const handlePropertiesChange = (field) => (newValue) => {
+		const newProps = { [field]: newValue };
+		handleChangeSegmentProperties(seclectedSection, newProps);
+	};
+
+	// setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length)
+	//const currentShapeType = shapeTypes[currentShapeIndex];
+	const handleSeclectSection = (name) => seclectSection(name);
+	const handlePrevPart = () => {};
+	const handleNextPart = () => {};
 
 	const handleConnectionToggle = (id) => {
 		setToolSettings((prev) => ({
@@ -299,38 +284,105 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 				return (
 					<>
 						<NumericStepper label="Grid Size" value={settings.gridSize} onChange={handleChange("gridSize")} step={0.05} min={0} precision={2} />
-						<SelectionChanger label="Change part selection" onPrev={handlePrevShape} onNext={handleNextShape} />
+						<SelectionChanger
+							label="Change part selection"
+							handlePrevPart={handlePrevPart}
+							handleSeclectSection={handleSeclectSection}
+							handleNextPart={handleNextPart}
+						/>
 						<hr className="tool-separator" />
 
-						{currentShapeType === "Profile" && (
+						{seclectedSection === "center" && (
 							<>
-								<NumericStepper label="Length" value={settings.length} onChange={handleChange("length")} step={0.1} precision={2} />
-								<NumericStepper label="X-Offset" value={settings.xOffset} onChange={handleChange("xOffset")} step={0.1} precision={2} />
-								<NumericStepper label="Z-Offset" value={settings.zOffset} onChange={handleChange("zOffset")} step={0.1} precision={2} />
+								<NumericStepper
+									label="Length"
+									value={segments.center.length}
+									onChange={handlePropertiesChange("length")}
+									step={settings.gridSize}
+									precision={2}
+									min={0}
+									max={100}
+								/>
+								<NumericStepper
+									label="X-Offset"
+									value={segments.center.xOffset}
+									onChange={handlePropertiesChange("xOffset")}
+									step={settings.gridSize}
+									precision={2}
+									min={-50}
+									max={50}
+								/>
+								<NumericStepper
+									label="Z-Offset"
+									value={segments.center.zOffset}
+									onChange={handlePropertiesChange("zOffset")}
+									step={settings.gridSize}
+									precision={2}
+									min={-50}
+									max={50}
+								/>
 								<SensitivitySlider
-									label="Pinch"
-									value={settings.pinch}
-									onChange={handleChange("pinch")}
+									label="Pinch X"
+									value={segments.center.pinchX}
+									onChange={handlePropertiesChange("pinchX")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
-								<SensitivitySlider label="Slant" value={settings.slant} onChange={handleChange("slant")} min={-100} />
+								<SensitivitySlider
+									label="Pinch Y"
+									value={segments.center.pinchY}
+									onChange={handlePropertiesChange("pinchY")}
+									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider label="Slant F" value={segments.center.slantF} onChange={handlePropertiesChange("slantF")} min={-100} />
+								<SensitivitySlider label="Slant B" value={segments.center.slantB} onChange={handlePropertiesChange("slantB")} min={-100} />
 							</>
 						)}
 
-						{currentShapeType === "Corners" && (
+						{seclectedSection !== "center" && (
 							<>
-								<NumericStepper label="Width" value={settings.width} onChange={handleChange("width")} step={0.05} precision={2} />
-								<NumericStepper label="Depth" value={settings.depth} onChange={handleChange("depth")} step={0.1} precision={2} />
-								<SensitivitySlider label="Corner Radius" value={settings.cornerRadius} onChange={handleChange("cornerRadius")} />
-								<SensitivitySlider label="Corner 1" value={settings.corner1} onChange={handleChange("corner1")} />
-								<SensitivitySlider label="Corner 2" value={settings.corner2} onChange={handleChange("corner2")} />
-								<SensitivitySlider label="Corner 3" value={settings.corner3} onChange={handleChange("corner3")} />
-								<SensitivitySlider label="Corner 4" value={settings.corner4} onChange={handleChange("corner4")} />
-								<SensitivitySlider label="Clamp 1" value={settings.clamp1} onChange={handleChange("clamp1")} min={-100} />
-								<SensitivitySlider label="Clamp 2" value={settings.clamp2} onChange={handleChange("clamp2")} min={-100} />
-								<SensitivitySlider label="Clamp 3" value={settings.clamp3} onChange={handleChange("clamp3")} min={-100} />
-								<SensitivitySlider label="Clamp 4" value={settings.clamp4} onChange={handleChange("clamp4")} min={-100} />
+								<NumericStepper
+									label="Points"
+									value={segments[seclectedSection].pointsCount}
+									onChange={handlePropertiesChange("pointsCount")}
+									step={segments[seclectedSection].pointsCount * 1.06}
+									precision={0}
+									min={4}
+									max={32}
+									readOnly
+								/>
+								<NumericStepper
+									label="Width"
+									value={segments[seclectedSection].width}
+									onChange={handlePropertiesChange("width")}
+									step={settings.gridSize}
+									precision={2}
+									min={0}
+								/>
+								<NumericStepper
+									label="Height"
+									value={segments[seclectedSection].height}
+									onChange={handlePropertiesChange("height")}
+									step={settings.gridSize}
+									precision={2}
+									min={0}
+								/>
+								<SensitivitySlider
+									label="Corner Radius"
+									value={segments[seclectedSection].corners}
+									onChange={handlePropertiesChange("corners")}
+								/>
+								<SensitivitySlider label="Corner 1" value={segments[seclectedSection].corner1} onChange={handlePropertiesChange("corner1")} />
+								<SensitivitySlider label="Corner 2" value={segments[seclectedSection].corner2} onChange={handlePropertiesChange("corner2")} />
+								<SensitivitySlider label="Corner 3" value={segments[seclectedSection].corner3} onChange={handlePropertiesChange("corner3")} />
+								<SensitivitySlider label="Corner 4" value={segments[seclectedSection].corner4} onChange={handlePropertiesChange("corner4")} />
+								{/*
+								<SensitivitySlider label="Clamp 1" value={segments[seclectedSection].clamp1} onChange={handleChange("clamp1")} min={-100} />
+								<SensitivitySlider label="Clamp 2" value={segments[seclectedSection].clamp2} onChange={handleChange("clamp2")} min={-100} />
+								<SensitivitySlider label="Clamp 3" value={segments[seclectedSection].clamp3} onChange={handleChange("clamp3")} min={-100} />
+								<SensitivitySlider label="Clamp 4" value={segments[seclectedSection].clamp4} onChange={handleChange("clamp4")} min={-100} />
+								*/}
 							</>
 						)}
 					</>
@@ -374,8 +426,8 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId }) 
 						<h4 className="connection-attach-points">{attachPoints.length} x ATTACH POINTS</h4>
 						<div className="connection-list">
 							{selectedPart.attachedPartIDs.map((id) => {
-								const part = parts.find((p) => p.id === id);
-								return <ConnectionItem key={id} connection={part} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />;
+								//const part = parts.find((p) => p.id === id);
+								//return <ConnectionItem key={id} connection={part} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />;
 							})}
 							<button className="add-connection-btn" onClick={handleAddConnection}>
 								<AddIcon />

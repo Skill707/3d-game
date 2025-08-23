@@ -1,20 +1,54 @@
 import { Segment } from "../ShapedForm/Segment";
 import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
-
+import { useMemo } from "react";
+import * as THREE from "three";
+import { Text } from "@react-three/drei";
 export function ShapedPart({ part }) {
-	const segments = part.shape.segments;
-
+	const material = useMemo(
+		() => new THREE.MeshStandardMaterial({ color: part.selected ? "orange" : part.color, side: THREE.DoubleSide }),
+		[part.selected, part.color]
+	);
+	const segments = part.shapeSegments;
 	return (
 		<>
-			{segments.map((segment, index) => (
-				<Segment key={index} segment={segment} part={part} />
-			))}
-
-			{segments.length > 1 &&
-				segments.map((segment, index) => {
-					if (index === 0) return null;
-					return <ConnectingSurface key={"surface-" + index} segmentA={segments[index - 1]} segmentB={segments[index]} part={part} />;
-				})}
+			<Segment segment={segments.front} material={material} />
+			<Segment segment={segments.back} material={material} />
+			<ConnectingSurface segmentA={segments.front} segmentB={segments.back} material={material} part={part} />
+			{part.selected && (
+				<>
+					{segments.front.extendeble && <AddButton position={segments.front.pos} name={"+"} />}
+					{part.drag && (
+						<>
+							<AttachPoint position={segments.front.pos} />
+							<AttachPoint position={segments.back.pos} />
+							<AttachPoint position={[0, -0.5, 0]} />
+						</>
+					)}
+				</>
+			)}
 		</>
+	);
+}
+
+export const AttachPoint = ({ position }) => {
+	return (
+		<mesh name="attachPoint" position={position}>
+			<sphereGeometry args={[0.1, 16, 16]} />
+			<meshStandardMaterial color="cyan" />
+		</mesh>
+	);
+};
+
+function AddButton({ position = [0, 0, 0], name }) {
+	return (
+		<group position={position}>
+			<mesh>
+				<boxGeometry args={[0.5, 0.5, 0.05]} />
+				<meshBasicMaterial color="green" />
+			</mesh>
+			<Text position={[0, 0, 0.06]} fontSize={0.5} color="white" anchorX="center" anchorY="middle">
+				{name}
+			</Text>
+		</group>
 	);
 }

@@ -5,7 +5,7 @@ import { Part } from "../utils/partFactory";
 const loadPartsFromStorage = () => {
 	try {
 		const stored = localStorage.getItem("craftParts");
-		
+
 		if (stored && stored != undefined) {
 			return JSON.parse(stored);
 		}
@@ -32,6 +32,6 @@ export const partsAtom = atom(
 		} catch (e) {
 			console.error("Error saving parts to localStorage:", e);
 		}
-		console.log("partsAtom update");
+		//console.log("partsAtom update");
 	}
 );

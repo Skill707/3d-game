@@ -5,7 +5,7 @@ import './NumericStepper.css';
 
 
 export function NumericStepper({
-    label, value = 0, onChange, step = 0.1, min = -Infinity, max = Infinity, precision = 2, labelColor,
+    label, value = 0, onChange, step = 0.1, min = -Infinity, max = Infinity, precision = 2, labelColor, readOnly = false
 }) {
     const [displayValue, setDisplayValue] = useState(value.toFixed(precision));
     const [isFocused, setIsFocused] = useState(false);
@@ -45,6 +45,7 @@ export function NumericStepper({
                     inputMode="decimal"
                     className="stepper-input"
                     value={displayValue}
+                    disabled={readOnly}
                     onChange={handleInputChange}
                     onFocus={() => setIsFocused(true)}
                     onBlur={handleBlur}

@@ -4,7 +4,6 @@ import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { partsAtom } from "../state/atoms";
 import { CreatePart, Part } from "../utils/partFactory";
-import { useControls } from "leva";
 import { produce } from "immer";
 import { DragControls } from "three/examples/jsm/Addons.js";
 
@@ -56,7 +55,7 @@ export default function Craft({ orbit }) {
 					name: selectedPart.name,
 					pos: e.object.position.clone().toArray(),
 					rot: e.object.rotation.clone().toArray(),
-					shape: selectedPart.shape,
+					shapeSegments: selectedPart.shapeSegments,
 					selected: false,
 				});
 				setPartsStorage((prev) => {

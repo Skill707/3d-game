@@ -1,6 +1,6 @@
 import { Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, Grid, TransformControls, GizmoHelper, GizmoViewport, Stats, KeyboardControls } from "@react-three/drei";
+import { OrbitControls, Environment, Grid, TransformControls, GizmoHelper, GizmoViewport, Stats, KeyboardControls, Loader } from "@react-three/drei";
 
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import Craft from "./components/Craft";
@@ -11,7 +11,7 @@ export function AircraftEditorScene() {
 	return (
 		<>
 			<AircraftEditorUI />
-			<Canvas shadows camera={{ position: [8, 5, 10], fov: 60 }}>
+			<Canvas shadows camera={{ position: [8, 5, 10], fov: 60 }} flat>
 				<Suspense fallback={null}>
 					<ambientLight intensity={0.7} />
 					<directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
@@ -35,9 +35,10 @@ export function AircraftEditorScene() {
 					<GizmoHelper alignment="bottom-right" margin={[80, 80]}>
 						<GizmoViewport axisColors={["#9d4b4b", "#2f7f4f", "#3b5b9d"]} labelColor="white" />
 					</GizmoHelper>
-					<Stats />
 				</Suspense>
 			</Canvas>
+			<Stats />
+			<Loader />
 		</>
 	);
 }

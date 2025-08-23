@@ -1,61 +1,71 @@
 import { Text, Billboard } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
 
-// eslint-disable-next-line react-refresh/only-export-components
-export const segmentPoinsRegistry = {
-	rectangle: [
-		[-1, 1, 0],
-		[1, 1, 0],
-		[1, -1, 0],
-		[-1, -1, 0],
-	],
-	circle8: generateCirclePoints([0, 0, 0], 8),
-	circle16: generateCirclePoints([0, 0, 0], 16),
-	circle32: generateCirclePoints([0, 0, 0], 32),
-	airfoil: generateCirclePoints([0, 0, 0], 32, [1, 0.25]),
+const segmentShapeRegistry = {
+	rectangle: { pointsCount: 4, corners: 0 },
+	circle8: { pointsCount: 8, corners: 100 },
+	circle16: { pointsCount: 16, corners: 100 },
+	circle32: { pointsCount: 32, corners: 100 },
+	airfoil: { pointsCount: 32, corners: 100, size: [1, 0.2] },
 };
-
 export class Segment {
 	constructor(parameters) {
-		this.shapeName = parameters.shapeName;
-		this.pos = parameters.pos;
 		this.name = parameters.pos[2] > 0 ? "front" : "back";
-		this.rot = parameters.rot || [0, 0, 0];
-		this.size = parameters.size || [1, 1];
+		this.pos = parameters.pos;
+		this.rot = [0, 0, 0];
+		this.width = 2;
+		this.height = 2;
 		this.closed = parameters.closed || true;
-		this.points = parameters.points || segmentPoinsRegistry[parameters.shapeName];
+		this.pointsCount = segmentShapeRegistry[parameters.shapeName].pointsCount;
+		this.points = generatePoints(
+			segmentShapeRegistry[parameters.shapeName].pointsCount,
+			[2, 2],
+			[
+				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
+				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
+				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
+				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
+			]
+		);
 		this.extendeble = true;
+		this.corners = segmentShapeRegistry[parameters.shapeName].corners;
+		this.corner1 = segmentShapeRegistry[parameters.shapeName].corner1 || segmentShapeRegistry[parameters.shapeName].corners;
+		this.corner2 = segmentShapeRegistry[parameters.shapeName].corner2 || segmentShapeRegistry[parameters.shapeName].corners;
+		this.corner3 = segmentShapeRegistry[parameters.shapeName].corner3 || segmentShapeRegistry[parameters.shapeName].corners;
+		this.corner4 = segmentShapeRegistry[parameters.shapeName].corner4 || segmentShapeRegistry[parameters.shapeName].corners;
+	}
+}
+
+export class shapeSegments {
+	constructor(parameters) {
+		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length || 1], closed: parameters.closed });
+		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length || -1], closed: parameters.closed });
+		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, slantF: 0, slantB: 0 };
 	}
 }
 
 // Регистрируем все доступные детали здесь
 
-const blockShape = {
-	segments: [
-		new Segment({
-			shapeName: "rectangle",
-			pos: [0, 0, -1],
-			closed: true,
-		}),
-		new Segment({
-			shapeName: "rectangle",
-			pos: [0, 0, 1],
-			closed: true,
-		}),
-	],
-};
+const blockShape = new shapeSegments({
+	shapeName: "rectangle",
+	length: 1,
+	closed: true,
+});
 
-const fuselageShape = {
-	segments: [new Segment({ shapeName: "circle16", pos: [0, 0, -1], closed: false }), new Segment({ shapeName: "circle16", pos: [0, 0, 1], closed: false })],
-};
+const fuselageShape = new shapeSegments({
+	shapeName: "circle16",
+	closed: false,
+});
 
-const fueltankShape = {
-	segments: [new Segment({ shapeName: "circle32", pos: [0, 0, -1], closed: true }), new Segment({ shapeName: "circle32", pos: [0, 0, 1], closed: true })],
-};
+const fueltankShape = new shapeSegments({
+	shapeName: "circle32",
+	closed: true,
+});
 
-const wingShape = {
-	segments: [new Segment({ shapeName: "airfoil1", pos: [0, 0, -1], closed: true }), new Segment({ shapeName: "airfoil1", pos: [0, 0, 1], closed: true })],
-};
+const wingShape = new shapeSegments({
+	shapeName: "airfoil",
+	closed: true,
+});
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const shapeRegistry = {
@@ -76,7 +86,7 @@ export class Part {
 		this.selected = parameters.selected || true;
 		this.attachedParts = parameters.attachedParts || [];
 		this.attachedToPart = parameters.attachedToPart || null;
-		this.shape = shapeRegistry[parameters.name] || null;
+		this.shapeSegments = shapeRegistry[parameters.name] || null;
 		this.drag = false;
 		this.objectName = parameters.objectName || "dragPart" + parameters.id;
 	}
@@ -87,7 +97,7 @@ export function CreatePart({ part }) {
 
 	return (
 		<group name={part.objectName} position={part.pos} rotation={part.rot}>
-			{part.shape && <ShapedPart part={part} />}
+			<ShapedPart part={part} />
 			<Billboard
 				follow={true}
 				lockX={false}
@@ -102,12 +112,49 @@ export function CreatePart({ part }) {
 	);
 }
 
-function generateCirclePoints(center, count = 8, size = [1, 1]) {
-	const points = [];
-	for (let i = 0; i < count; i++) {
-		const angle = (i / count) * Math.PI * 2;
-		points.push([center[0] + Math.cos(angle) * size[0], center[1] + Math.sin(angle) * size[1], center[2]]);
+// eslint-disable-next-line react-refresh/only-export-components
+export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0], pinchX = 0, pinchY = 0, slant = 0, center = [0, 0, 0]) {
+	const [w, h] = size;
+	const [cx, cy, cz] = center;
+
+	// углы ограничиваем половиной сторон
+	const [rw1, rw2, rw3, rw4] = corners.map((r) => (r * w) / 2);
+	const [rh1, rh2, rh3, rh4] = corners.map((r) => (r * h) / 2);
+
+	const rawPoints = [];
+	const cornerSegments = Math.floor(count / 4);
+
+	// центры дуг для каждого угла
+	const cornersCenters = [
+		[cx + w / 2 - rw1, cy + h / 2 - rh1, rw1, rh1, 0], // top-right
+		[cx - w / 2 + rw2, cy + h / 2 - rh2, rw2, rh2, Math.PI / 2], // top-left
+		[cx - w / 2 + rw3, cy - h / 2 + rh3, rw3, rh3, Math.PI], // bottom-left
+		[cx + w / 2 - rw4, cy - h / 2 + rh4, rw4, rh4, (3 * Math.PI) / 2], // bottom-right
+	];
+
+	for (let c = 0; c < 4; c++) {
+		const [cxCorner, cyCorner, rw, rh, startAngle] = cornersCenters[c];
+		if (rw === 0 || rh === 0) {
+			// прямой угол
+			rawPoints.push([cxCorner, cyCorner, cz]);
+		} else {
+			// дуга
+			for (let i = 0; i <= cornerSegments; i++) {
+				const a = startAngle + (i / cornerSegments) * (Math.PI / 2);
+				rawPoints.push([cxCorner + Math.cos(a) * rw, cyCorner + Math.sin(a) * rh, cz]);
+			}
+		}
 	}
+	console.log(slant);
+
+	const points = rawPoints.map(([x, y, z]) => {
+		const scaleX = h / 2 - y * pinchX;
+		const scaleY = w / 2 - x * pinchY;
+		const addZ = -y * slant;
+
+		return [x * scaleX, y * scaleY, z + addZ];
+	});
+
 	return points;
 }
 
