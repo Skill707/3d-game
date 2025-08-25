@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "./panels/Menu";
 import { DesignerPanel } from "./panels/DesignerPanel";
@@ -19,7 +19,7 @@ export function SidebarUI() {
 	const [activeSubToolId, setActiveSubToolId] = useState("MOVE");
 
 	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
-	const selectedPart = partsStorage.parts.find((p) => p.id === partsStorage.selectedID) || null;
+	const selectedPart = partsStorage.selectedPart;
 
 	const handlePanelToggle = (panelId) => {
 		setActivePanel((current) => (current === panelId ? null : panelId));
@@ -28,7 +28,7 @@ export function SidebarUI() {
 	const handleChangeSegmentProperties = (segmentName, newProperties) => {
 		setPartsStorage(
 			produce((draft) => {
-				const part = draft.parts.find((p) => p.id === partsStorage.selectedID);
+				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
 				part.shapeSegments[segmentName] = { ...part.shapeSegments[segmentName], ...newProperties };
 				let props = [];
 				for (const key in newProperties) {
@@ -49,7 +49,7 @@ export function SidebarUI() {
 				} else if (props[0] === "zOffset") {
 					part.shapeSegments.front.pos[1] = part.shapeSegments.center.zOffset / 2;
 					part.shapeSegments.back.pos[1] = -part.shapeSegments.center.zOffset / 2;
-				} else if (props[0] === "pinchX" || props[0] === "pinchY" || props[0] === "slantF" || props[0] === "slantB") {
+				} else if (props[0] === "pinchX" || props[0] === "pinchY" || props[0] === "slantF" || props[0] === "slantB" || props[0] === "angle") {
 					part.shapeSegments.front.points = generatePoints(
 						part.shapeSegments.front.pointsCount,
 						[part.shapeSegments.front.width, part.shapeSegments.front.height],
@@ -61,7 +61,8 @@ export function SidebarUI() {
 						],
 						part.shapeSegments.center.pinchX * 0.01,
 						part.shapeSegments.center.pinchY * 0.01,
-						part.shapeSegments.center.slantF * 0.01
+						part.shapeSegments.center.slantF * 0.01,
+						part.shapeSegments.center.angle * 0.01
 					);
 					part.shapeSegments.back.points = generatePoints(
 						part.shapeSegments.back.pointsCount,
@@ -74,7 +75,8 @@ export function SidebarUI() {
 						],
 						part.shapeSegments.center.pinchX * 0.01,
 						part.shapeSegments.center.pinchY * 0.01,
-						part.shapeSegments.center.slantB * 0.01
+						part.shapeSegments.center.slantB * 0.01,
+						part.shapeSegments.center.angle * 0.01
 					);
 				}
 
@@ -90,40 +92,13 @@ export function SidebarUI() {
 						],
 						part.shapeSegments.center.pinchX * 0.01,
 						part.shapeSegments.center.pinchY * 0.01,
-						segmentName === "back " ? part.shapeSegments.center.slantB * 0.01 : part.shapeSegments.center.slantF * 0.01
+						segmentName === "back " ? part.shapeSegments.center.slantB * 0.01 : part.shapeSegments.center.slantF * 0.01,
+						part.shapeSegments.center.angle * 0.01
 					);
 				}
+				draft.selectedPart = part;
 			})
 		);
-	};
-
-	const handleChangeMode = (id, segmentName, newShapeName) => {
-		/*	setPartsStorage(
-			produce((draft) => {
-				const part = draft.parts.find((p) => p.id === id);
-				if (!part) {
-					console.warn("part not found");
-					return;
-				}
-				if (segmentName === "front") {
-					part.shapeSegments.front = { ...part.shapeSegments.front, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
-					part.attachedParts.forEach((par) => {
-						const found = draft.parts.find((p) => p.id === par.id);
-						if (found) {
-							found.shapeSegments.back = { ...found.shapeSegments.back, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
-						}
-					});
-				} else if (segmentName === "back") {
-					part.shapeSegments.back = { ...part.shapeSegments.back, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
-					part.attachedParts.forEach((par) => {
-						const found = draft.parts.find((p) => p.id === par.id);
-						if (found) {
-							found.shapeSegments.front = { ...found.shapeSegments.front, shapeName: newShapeName, points: segmentShapeRegistry[newShapeName] };
-						}
-					});
-				}
-			})
-		);*/
 	};
 
 	return (
@@ -144,12 +119,7 @@ export function SidebarUI() {
 				{activePanel === "ADD_PARTS" && <AddPartsPanel key="add-parts" onClose={() => handlePanelToggle("ADD_PARTS")} />}
 				{activePanel === "SEARCH" && <SearchPartsPanel key="search-parts" onClose={() => handlePanelToggle("SEARCH")} />}
 				{activePanel === "PART_PROPERTIES" && (
-					<PartPropertiesPanel
-						key="part-props"
-						onClose={() => handlePanelToggle("PART_PROPERTIES")}
-						selectedPart={selectedPart}
-						handleChangeMode={handleChangeMode}
-					/>
+					<PartPropertiesPanel key="part-props" onClose={() => handlePanelToggle("PART_PROPERTIES")} selectedPart={selectedPart} />
 				)}
 				{activePanel === "SYMMETRY" && <SymmetryPanel key="symmetry" onClose={() => handlePanelToggle("SYMMETRY")} />}
 				{activePanel === "ACTIVATION_GROUPS" && (

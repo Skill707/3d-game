@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
 	Close as CloseIcon,
 	NearMe as CursorIcon,
@@ -97,18 +97,12 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 			gridSize: 0.05,
 			mode: "Connected",
 			direction: "Local",
-			xPos: selectedPart.pos[0],
-			yPos: selectedPart.pos[1],
-			zPos: selectedPart.pos[2],
 		},
 		rotate: {
 			angleStep: 15,
 			mode: "Connected",
 			direction: "Local",
 			sensitivity: 50,
-			xAngle: selectedPart.rot[0],
-			yAngle: selectedPart.rot[1],
-			zAngle: selectedPart.rot[2],
 		},
 		reshape: {
 			gridSize: 0.25,
@@ -146,6 +140,9 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 	const handlePropertiesChange = (field) => (newValue) => {
 		const newProps = { [field]: newValue };
 		handleChangeSegmentProperties(seclectedSection, newProps);
+		setToolSettings((prev) => ({
+			...prev,
+		}));
 	};
 
 	// setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length)
@@ -337,6 +334,7 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 								/>
 								<SensitivitySlider label="Slant F" value={segments.center.slantF} onChange={handlePropertiesChange("slantF")} min={-100} />
 								<SensitivitySlider label="Slant B" value={segments.center.slantB} onChange={handlePropertiesChange("slantB")} min={-100} />
+								<SensitivitySlider label="Angle" value={segments.center.angle} onChange={handlePropertiesChange("angle")} min={-100} />
 							</>
 						)}
 

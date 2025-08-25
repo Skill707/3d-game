@@ -130,3 +130,8 @@ h1 {
 	display: flex;
 	flex-direction: column;
 }
+
+  .stats {
+	left: 90%	!important
+  
+}

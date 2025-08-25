@@ -90,3 +90,48 @@ export function matrix4ToEuler(input) {
 
 	return null;
 }
+
+function transformSelectedObject(selectedObject, hit) {
+	const point = hit.point.clone();
+	const attachTo = hit.object.name;
+	const localNormal = hit.normal;
+
+	const hitGroupObject = hit.object.parent;
+	if (!hitGroupObject) return;
+
+	const hitPart = hitGroupObject.userData;
+	if (!hitPart) return;
+
+	let finalPosition = point.clone();
+	/*finalPosition.x = finalPosition.x.toPrecision(1);
+                        finalPosition.y = finalPosition.y.toPrecision(1);*/
+
+	finalPosition.z = hitGroupObject.position.z;
+	let finalRotation = new THREE.Euler();
+	const size = [2, 2, 2];
+	if (attachTo === "side") {
+		// Transform normal from local to world space using part's rotation
+		const partRotation = new THREE.Euler(...hitPart.rot);
+		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(partRotation);
+		const normal = localNormal.applyMatrix4(rotationMatrix).normalize();
+
+		// Convert normal to rotation using quaternion
+		// Calculate the rotation from defaultUp to our normal
+		const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
+		// Convert quaternion to euler angles
+		finalRotation.setFromQuaternion(quaternion);
+
+		const offset = new THREE.Vector3(0, -size[1] / 2, 0).applyQuaternion(quaternion);
+		finalPosition.sub(offset);
+	} else if (attachTo === "front" || attachTo === "back") {
+		const offset = attachTo === "front" ? size[2] / 2 : -size[2] / 2;
+		finalPosition.set(hitGroupObject.position.x, hitGroupObject.position.y, point.z + offset);
+		finalRotation.copy(new THREE.Euler(...hitPart.rot));
+	} else {
+		finalPosition.copy(point);
+		finalRotation.copy(new THREE.Euler());
+	}
+
+	selectedObject.position.copy(finalPosition);
+	selectedObject.rotation.copy(finalRotation);
+}

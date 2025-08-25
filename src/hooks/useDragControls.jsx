@@ -1,60 +1,37 @@
 import { useEffect, useRef } from "react";
-import * as THREE from "three";
-import { DragControls } from "three/examples/jsm/controls/DragControls.js";
 import { useThree } from "@react-three/fiber";
-import { produce } from "immer";
+import { initDragControls } from "../utils/initDragControls";
 
-export function useDragControls(objects, orbit, parts, setPartsStorage) {
+export function useDragControls(orbit, partsStorage, setPartsStorage, lastAddedRef) {
 	const controlsRef = useRef(null);
-	//const controlsRef = (useRef < DragControls) | (null > null);
-	const { camera, gl } = useThree();
+	const { scene, camera, gl } = useThree();
 
 	useEffect(() => {
-		if (!objects.length) console.log("return");
-		if (!objects.length) return;
+		console.log("useDragControls Effect[partsStorage]");
+		if (controlsRef.current !== null) {
+			if (controlsRef.current.enabled === false) {
+				controlsRef.current.dispose();
+				controlsRef.current = null;
+			}
+		}
 
-		if (controlsRef.current) return;
+		if (controlsRef.current === null) {
+			const objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 
-		console.log("did");
-		// создаём контролы один раз
-		const controls = new DragControls(objects, camera, gl.domElement);
-		controls.transformGroup = true;
-		controls.rotateSpeed = 0;
-		controlsRef.current = controls;
-		console.log(controlsRef.current);
+			if (objects.length > 0) controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], setPartsStorage);
+		} else {
+			if (lastAddedRef.current) {
+				const lastAddedObject = scene.getObjectByName(lastAddedRef.current) || null;
+				lastAddedRef.current = null;
 
-		// примеры событий
-		controls.addEventListener("dragstart", (e) => {
-			console.log("drag start", e.object);
-			orbit.current.enabled = false;
-			const part = parts.find((p) => p.objectName === e.object.name) || null;
-			const id = part.id;
-			setPartsStorage((prev) => {
-				const parts = prev.parts.map((part) => (part.id === id ? { ...part, selected: true, drag: true } : { ...part, selected: false, drag: false }));
-				return { ...prev, parts, selectedID: id };
-			});
-		});
-		controls.addEventListener("dragend", (e) => {
-			console.log("drag end", e.object);
-			orbit.current.enabled = true;
-			const part = parts.find((p) => p.objectName === e.object.name) || null;
-			const id = part.id;
-			setPartsStorage(
-				produce((draft) => {
-					const part = draft.parts.find((p) => p.id === id);
-					if (!part) {
-						console.warn("part not found");
-						return;
-					}
-					//part.pos = newPos;
-					//part.rot = newRot;
-					part.drag = false;
-				})
-			);
-		});
+				if (lastAddedObject) {
+					controlsRef.current.selected = lastAddedObject;
+					controlsRef.current.state = 0;
+				}
+			}
+		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [partsStorage]);
 
-		return () => {};
-	}, [camera, gl, objects, parts, orbit, setPartsStorage]);
-	console.log("controlsRef", controlsRef.current)
 	return controlsRef;
 }

@@ -3,13 +3,12 @@ import { canAttachParts, wouldFormCycle } from "../utils/attachmentUtils";
 import { calculatePositionDelta, calculateRotationDelta, updateRelativeTransform } from "../utils/transformUtils";
 import { Part } from "../utils/partFactory";
 
-export function addPart(setPartsStorage, part) {
-	setPartsStorage(
-		produce((draft) => {
-			draft.parts.push(part);
-			draft.selectedID = part.id;
-		})
-	);
+export function addPart(parts, newID, type) {
+	const newPart = new Part({
+		id: newID,
+		name: type,
+	});
+	return [[...parts, newPart], newPart];
 }
 
 export function removePart(setPartsStorage, id) {
@@ -21,19 +20,7 @@ export function removePart(setPartsStorage, id) {
 	);
 }
 
-export function transformPart(setPartsStorage, id, newPos, newRot) {
-	setPartsStorage(
-		produce((draft) => {
-			const part = draft.parts.find((p) => p.id === id);
-			if (!part) {
-				console.warn("part not found");
-				return;
-			}
-			part.pos = newPos;
-			part.rot = newRot;
-		})
-	);
-}
+
 
 export function transformPart2(setPartsStorage, id, newPos, newRot) {
 	setPartsStorage(
@@ -94,12 +81,6 @@ export function selectPartByID(setPartsStorage, id) {
 	});
 }
 
-export function switchPartSelectionByID(setPartsStorage, id) {
-	setPartsStorage((prev) => {
-		const parts = prev.parts.map((part) => (part.id === id ? { ...part, selected: !part.selected } : { ...part, selected: false }));
-		return { ...prev, parts, selectedID: prev.selectedID === id ? null : id };
-	});
-}
 
 export function attachPartsByID(setPartsStorage, id, attachToID, attachPoint) {
 	setPartsStorage(
@@ -162,7 +143,3 @@ export function clearAttachmentsOfPartsByID(setPartsStorage, id) {
 	);
 }
 
-export function clearSavedParts(setPartsStorage) {
-	localStorage.removeItem("craftParts");
-	setPartsStorage({ parts: [new Part({ id: 0, name: "fueltank" })], selectedID: 0 });
-}

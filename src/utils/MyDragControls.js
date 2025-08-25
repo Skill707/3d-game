@@ -9,12 +9,12 @@ const _previousPointer = new Vector2();
 const _intersection = new Vector3();
 const _worldPosition = new Vector3();
 const _inverseMatrix = new Matrix4();
+let _drag = false;
 
 const _up = new Vector3();
 const _right = new Vector3();
 
-let _selected = null,
-	_hovered = null;
+let _hovered = null;
 const _intersections = [];
 
 const STATE = {
@@ -108,6 +108,9 @@ class DragControls extends Controls {
 		this._onPointerDown = onPointerDown.bind(this);
 		this._onPointerCancel = onPointerCancel.bind(this);
 		this._onContextMenu = onContextMenu.bind(this);
+
+		this.selected = null;
+		this.enabled = true;
 
 		//
 
@@ -208,18 +211,30 @@ function onPointerMove(event) {
 
 	raycaster.setFromCamera(_pointer, camera);
 
-	if (_selected) {
+	if (this.selected) {
 		if (this.state === STATE.PAN) {
 			if (raycaster.ray.intersectPlane(_plane, _intersection)) {
-				_selected.position.copy(_intersection.sub(_offset).applyMatrix4(_inverseMatrix));
+				this.selected.position.copy(_intersection.sub(_offset).applyMatrix4(_inverseMatrix));
 			}
 		} else if (this.state === STATE.ROTATE) {
 			_diff.subVectors(_pointer, _previousPointer).multiplyScalar(this.rotateSpeed);
-			_selected.rotateOnWorldAxis(_up, _diff.x);
-			_selected.rotateOnWorldAxis(_right.normalize(), -_diff.y);
+			this.selected.rotateOnWorldAxis(_up, _diff.x);
+			this.selected.rotateOnWorldAxis(_right.normalize(), -_diff.y);
 		}
 
-		this.dispatchEvent({ type: "drag", object: _selected });
+		_intersections.length = 0;
+		raycaster.intersectObjects(
+			this.objects.filter((o) => o !== this.selected),
+			this.recursive,
+			_intersections
+		);
+
+		domElement.style.cursor = "move";
+		if (_drag === false) {
+			_drag = true;
+			this.dispatchEvent({ type: "dragstart", object: this.selected, button: event.button });
+		}
+		this.dispatchEvent({ type: "drag", object: this.selected, objects: this.objects, hit: _intersections[0] ?? null });
 
 		_previousPointer.copy(_pointer);
 	} else {
@@ -282,17 +297,17 @@ function onPointerDown(event) {
 		if (this.transformGroup === true) {
 			// look for the outermost group in the object's upper hierarchy
 
-			_selected = findGroup(_intersections[0].object);
+			this.selected = findGroup(_intersections[0].object);
 		} else {
-			_selected = _intersections[0].object;
+			this.selected = _intersections[0].object;
 		}
 
-		_plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(_plane.normal), _worldPosition.setFromMatrixPosition(_selected.matrixWorld));
+		_plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(_plane.normal), _worldPosition.setFromMatrixPosition(this.selected.matrixWorld));
 
 		if (raycaster.ray.intersectPlane(_plane, _intersection)) {
 			if (this.state === STATE.PAN) {
-				_inverseMatrix.copy(_selected.parent.matrixWorld).invert();
-				_offset.copy(_intersection).sub(_worldPosition.setFromMatrixPosition(_selected.matrixWorld));
+				_inverseMatrix.copy(this.selected.parent.matrixWorld).invert();
+				_offset.copy(_intersection).sub(_worldPosition.setFromMatrixPosition(this.selected.matrixWorld));
 			} else if (this.state === STATE.ROTATE) {
 				// the controls only support Y+ up
 				_up.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
@@ -300,9 +315,7 @@ function onPointerDown(event) {
 			}
 		}
 
-		domElement.style.cursor = "move";
-
-		this.dispatchEvent({ type: "dragstart", object: _selected });
+		this.dispatchEvent({ type: "click", object: this.selected, button: event.button });
 	}
 
 	_previousPointer.copy(_pointer);
@@ -311,10 +324,14 @@ function onPointerDown(event) {
 function onPointerCancel() {
 	if (this.enabled === false) return;
 
-	if (_selected) {
-		this.dispatchEvent({ type: "dragend", object: _selected });
-
-		_selected = null;
+	if (this.selected) {
+		_drag = false;
+		const destroy = () => {
+			this.disconnect();
+			this.enabled = false;
+		};
+		this.dispatchEvent({ type: "dragend", object: this.selected, objects: this.objects, lastHit: _intersections[0] ?? null, destroy: destroy });
+		this.selected = null;
 	}
 
 	this.domElement.style.cursor = _hovered ? "pointer" : "auto";

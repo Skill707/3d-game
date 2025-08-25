@@ -3,11 +3,8 @@ import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Text } from "@react-three/drei";
-export function ShapedPart({ part }) {
-	const material = useMemo(
-		() => new THREE.MeshStandardMaterial({ color: part.selected ? "orange" : part.color, side: THREE.DoubleSide }),
-		[part.selected, part.color]
-	);
+export function ShapedPart({ part, selected }) {
+	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: selected ? "orange" : part.color, side: THREE.DoubleSide }), [selected, part.color]);
 	const segments = part.shapeSegments;
 	return (
 		<>

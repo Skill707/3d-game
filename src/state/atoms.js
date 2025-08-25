@@ -12,7 +12,8 @@ const loadPartsFromStorage = () => {
 	} catch (e) {
 		console.error("Error loading parts from localStorage:", e);
 	}
-	return { parts: [new Part({ id: 0, name: "fueltank" })], selectedID: 0 };
+	const newPart = new Part({ id: 0, name: "fueltank", root: true });
+	return { parts: [newPart], selectedPart: null };
 };
 
 // Базовый атом с начальным значением из localStorage
@@ -33,5 +34,42 @@ export const partsAtom = atom(
 			console.error("Error saving parts to localStorage:", e);
 		}
 		//console.log("partsAtom update");
+	}
+);
+
+const loadSettingsFromStorage = () => {
+	try {
+		const stored = localStorage.getItem("settings");
+
+		if (stored && stored != undefined) {
+			return JSON.parse(stored);
+		}
+	} catch (e) {
+		console.error("Error loading settings from localStorage:", e);
+	}
+	return {
+		addParts: {
+			selectedPartType: null,
+			pointerOut: true,
+		},
+	};
+};
+
+const baseSettingsAtom = atom(loadSettingsFromStorage());
+
+export const settingsAtom = atom(
+	(get) => get(baseSettingsAtom),
+	(get, set, update) => {
+		// Если update это функция, применяем её к текущему значению
+		const currentValue = get(baseSettingsAtom);
+		const newValue = typeof update === "function" ? update(currentValue) : update;
+
+		set(baseSettingsAtom, newValue);
+		try {
+			localStorage.setItem("settings", JSON.stringify(newValue));
+		} catch (e) {
+			console.error("Error saving settings to localStorage:", e);
+		}
+		//console.log("SettingsAtom update");
 	}
 );

@@ -1,6 +1,6 @@
 import { Suspense, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Environment, Grid, TransformControls, GizmoHelper, GizmoViewport, Stats, KeyboardControls, Loader } from "@react-three/drei";
+import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader } from "@react-three/drei";
 
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import Craft from "./components/Craft";
@@ -8,6 +8,7 @@ import Craft from "./components/Craft";
 export function AircraftEditorScene() {
 	console.log("function AircraftEditorSceneame");
 	const orbit = useRef();
+
 	return (
 		<>
 			<AircraftEditorUI />
@@ -30,14 +31,13 @@ export function AircraftEditorScene() {
 					<Craft orbit={orbit} />
 
 					{/*<TransformControls enabled={true} ref={null} object={null} onMouseUp={() => {}} mode={"rotate"} /> */}
-					<Environment preset="city" />
 					<OrbitControls ref={orbit} enablePan={true} minDistance={5} maxDistance={20} maxPolarAngle={Math.PI / 2 - 0.1} makeDefault />
 					<GizmoHelper alignment="bottom-right" margin={[80, 80]}>
 						<GizmoViewport axisColors={["#9d4b4b", "#2f7f4f", "#3b5b9d"]} labelColor="white" />
 					</GizmoHelper>
 				</Suspense>
 			</Canvas>
-			<Stats />
+			<Stats className="stats" />
 			<Loader />
 		</>
 	);
