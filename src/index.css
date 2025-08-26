@@ -131,7 +131,58 @@ h1 {
 	flex-direction: column;
 }
 
-  .stats {
-	left: 90%	!important
-  
+.stats {
+	left: 90% !important;
+}
+
+/* --- Orientation Message for Portrait Mode on Mobile --- */
+.orientation-message {
+	display: none; /* Hidden by default */
+}
+
+/* 
+  Show the message and hide the app only on mobile devices in portrait mode.
+  Using a coarse pointer is a good proxy for touch devices.
+*/
+@media (pointer: coarse) and (orientation: portrait) {
+	.app-container {
+		display: none;
+	}
+
+	.orientation-message {
+		display: flex;
+		justify-content: center;
+		align-items: center;
+		position: fixed;
+		top: 0;
+		left: 0;
+		width: 100%;
+		height: 100%;
+		background-color: var(--sidebar-bg);
+		color: var(--text-color);
+		z-index: 9999;
+		text-align: center;
+	}
+
+	.orientation-message-content {
+		padding: 2rem;
+	}
+
+	.orientation-icon {
+		width: 64px;
+		height: 64px;
+		margin-bottom: 1.5rem;
+		fill: currentColor;
+	}
+
+	.orientation-message h2 {
+		font-size: 1.5rem;
+		margin-bottom: 0.5rem;
+		color: white;
+	}
+
+	.orientation-message p {
+		font-size: 1rem;
+		color: var(--icon-color);
+	}
 }

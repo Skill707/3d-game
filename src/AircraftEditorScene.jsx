@@ -1,4 +1,4 @@
-import { Suspense, useRef } from "react";
+import { Suspense, useEffect, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader } from "@react-three/drei";
 
@@ -7,11 +7,57 @@ import Craft from "./components/Craft";
 
 export function AircraftEditorScene() {
 	const orbit = useRef();
+	const canvasRef = useRef(null);
+
+	const toggleFullScreen = () => {
+		if (!document.fullscreenElement) {
+			document.documentElement.requestFullscreen().catch((err) => {
+				console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+			});
+		} else {
+			if (document.exitFullscreen) {
+				// document.exitFullscreen();
+			}
+		}
+	};
+
+	const OrientationMessage = () => (
+		<div className="orientation-message">
+			<div className="orientation-message-content">
+				<svg className="orientation-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+					<path d="M0 0h24v24H0V0z" fill="none" />
+					<path d="M15.55 5.55L11 1v3.07C7.06 4.56 4 7.92 4 12s3.06 7.44 7 7.93v-2.02c-2.83-.48-5-2.94-5-5.91s2.17-5.43 5-5.91V11l4.55-4.55zM19.93 11c-.17-1.39-.72-2.73-1.62-3.89l-1.42 1.42c.54.75.88 1.6 1.02 2.47h2.02zM13 17.93v2.02c1.39-.17 2.74-.71 3.9-1.61l-1.44-1.44c-.75.54-1.59.89-2.46 1.03z" />
+				</svg>
+				<h2>Please rotate your device</h2>
+				<p>This application is best viewed in landscape mode.</p>
+			</div>
+		</div>
+	);
+
+	useEffect(() => {
+		const lockOrientation = async () => {
+			// Check for mobile user agent and availability of screen.orientation.lock
+			const isMobile = /Mobi|Android/i.test(navigator.userAgent);
+			// FIX: Cast `screen.orientation` to `any` to access the experimental `lock` method, which may not be defined in standard TypeScript types.
+			if (isMobile && screen.orientation && typeof screen.orientation.lock === "function") {
+				try {
+					// Note: This might not work on all browsers/OSes without user interaction
+					// or specific browser settings (e.g., iOS). The CSS is a reliable fallback.
+					await screen.orientation.lock("landscape");
+				} catch (error) {
+					console.error("Failed to lock orientation:", error);
+					// The CSS fallback will handle prompting the user.
+				}
+			}
+		};
+		lockOrientation();
+	}, []);
 
 	return (
 		<>
+			<OrientationMessage />
 			<AircraftEditorUI />
-			<Canvas shadows camera={{ position: [8, 5, 10], fov: 60 }} flat>
+			<Canvas ref={canvasRef} shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
 				<Suspense fallback={null}>
 					<ambientLight intensity={0.7} />
 					<directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />

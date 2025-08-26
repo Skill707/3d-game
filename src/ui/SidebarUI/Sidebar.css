@@ -1,120 +1,156 @@
 /* --- Sidebar Styles --- */
 .sidebar {
-    width: 72px;
-    height: 100%;
-    background-color: var(--sidebar-bg);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    padding: 12px 0;
-    box-sizing: border-box;
-    flex-shrink: 0;
-    z-index: 1001; /* Ensure sidebar is on top */
-  }
-  
-  .sidebar ul {
-    list-style-type: none;
-    margin: 0;
-    padding: 0;
-    width: 100%;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 8px;
-  }
-  
-  .sidebar li {
-    width: 100%;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    flex-direction: column;
-  }
-  
-  /* --- Sidebar Button Styles --- */
-  /* The IconButton from MUI renders a button, so these styles will apply */
-  .sidebar-button {
-    width: 48px !important; /* using important to override MUI default size */
-    height: 48px !important;
-    background-color: var(--icon-bg);
-    border: none;
-    border-radius: 50% !important; /* Default to circle */
-    cursor: pointer;
-    color: var(--icon-color) !important;
-    transition: all 0.15s ease-out !important;
-    position: relative;
-  }
-  
-  .sidebar-button:hover {
-    border-radius: 16px !important; 
-    background-color: var(--brand-color) !important;
-    color: var(--icon-hover-color) !important;
-  }
-  
-  .sidebar-button:focus-visible {
-    outline: 2px solid var(--brand-color);
-    outline-offset: 3px;
-    border-radius: 16px;
-  }
-  
-  .sidebar-button svg {
-    width: 24px;
-    height: 24px;
-  }
-  
-  /* Special type for the last icon, as seen in image */
-  .sidebar-button.special {
-      background-color: var(--icon-bg);
-  }
-  
-  .sidebar-button.special:hover {
-      background-color: var(--brand-color) !important;
-  }
-  
-  /* Styling for the first/brand icon on hover */
-  .sidebar-button.brand:hover {
-    background-color: var(--active-brand-color) !important;
-    color: white !important;
-  }
-  
-  /* Active state for the Menu button */
-  .sidebar-button.brand.active {
-      border-radius: 16px !important;
-      background-color: var(--active-brand-color) !important;
-      color: white !important;
-  }
-  
-  /* Active state for other tool buttons */
-  .sidebar-button:not(.brand).active {
-      border-radius: 16px !important;
-      background-color: var(--active-color, var(--brand-color)) !important;
-      color: white !important;
-  }
-  
-  /* Add the highlight bar on the left for any active button */
-  .sidebar-button.active::before {
-      content: '';
-      position: absolute;
-      left: -12px;
-      top: 50%;
-      transform: translateY(-50%);
-      width: 4px;
-      height: 20px;
-      background-color: white;
-      border-radius: 0 4px 4px 0;
-      transition: height 0.2s ease;
-  }
-  
-  .sidebar-button.active:hover::before {
-      height: 40px;
-  }
-  
-  /* --- Separator Style --- */
-  .sidebar-separator {
-    width: 32px;
-    border: none;
-    border-top: 2px solid var(--icon-bg);
-    margin-top: 0;
-    margin-bottom: 8px;
-  }
+	width: 72px;
+	height: 100%;
+	background-color: var(--sidebar-bg);
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	padding: 12px 0;
+	box-sizing: border-box;
+	flex-shrink: 0;
+	z-index: 1001; /* Ensure sidebar is on top */
+}
 
+.sidebar ul {
+	list-style-type: none;
+	margin: 0;
+	padding: 0;
+	width: 100%;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: 8px;
+}
+
+.sidebar li {
+	width: 100%;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	flex-direction: column;
+}
+
+/* --- Sidebar Button Styles --- */
+/* The IconButton from MUI renders a button, so these styles will apply */
+.sidebar-button {
+	width: 48px !important; /* using important to override MUI default size */
+	height: 48px !important;
+	background-color: var(--icon-bg);
+	border: none;
+	border-radius: 50% !important; /* Default to circle */
+	cursor: pointer;
+	color: var(--icon-color) !important;
+	transition: all 0.15s ease-out !important;
+	position: relative;
+}
+
+.sidebar-button:hover {
+	border-radius: 16px !important;
+	background-color: var(--brand-color) !important;
+	color: var(--icon-hover-color) !important;
+}
+
+.sidebar-button:focus-visible {
+	outline: 2px solid var(--brand-color);
+	outline-offset: 3px;
+	border-radius: 16px;
+}
+
+.sidebar-button svg {
+	width: 24px;
+	height: 24px;
+}
+
+/* Special type for the last icon, as seen in image */
+.sidebar-button.special {
+	background-color: var(--icon-bg);
+}
+
+.sidebar-button.special:hover {
+	background-color: var(--brand-color) !important;
+}
+
+/* Styling for the first/brand icon on hover */
+.sidebar-button.brand:hover {
+	background-color: var(--active-brand-color) !important;
+	color: white !important;
+}
+
+/* Active state for the Menu button */
+.sidebar-button.brand.active {
+	border-radius: 16px !important;
+	background-color: var(--active-brand-color) !important;
+	color: white !important;
+}
+
+/* Active state for other tool buttons */
+.sidebar-button:not(.brand).active {
+	border-radius: 16px !important;
+	background-color: var(--active-color, var(--brand-color)) !important;
+	color: white !important;
+}
+
+/* Add the highlight bar on the left for any active button */
+.sidebar-button.active::before {
+	content: "";
+	position: absolute;
+	left: -12px;
+	top: 50%;
+	transform: translateY(-50%);
+	width: 4px;
+	height: 20px;
+	background-color: white;
+	border-radius: 0 4px 4px 0;
+	transition: height 0.2s ease;
+}
+
+.sidebar-button.active:hover::before {
+	height: 40px;
+}
+
+/* --- Separator Style --- */
+.sidebar-separator {
+	width: 32px;
+	border: none;
+	border-top: 2px solid var(--icon-bg);
+	margin-top: 0;
+	margin-bottom: 8px;
+}
+
+@media (max-height: 450px) and (orientation: landscape) {
+	.sidebar {
+		width: 56px;
+		padding: 4px 0;
+	}
+
+	.sidebar ul {
+		gap: 2px;
+	}
+
+	.sidebar-button {
+		width: 32px !important;
+		height: 32px !important;
+	}
+
+	.sidebar-button svg {
+		width: 18px;
+		height: 18px;
+	}
+
+	.sidebar-separator {
+		width: 24px;
+		margin-bottom: 2px;
+		border-top-width: 1px;
+	}
+
+	.sidebar-button.active::before {
+		left: -12px; /* (56-32)/2 = 12 */
+		width: 3px;
+		height: 14px;
+	}
+
+	.sidebar-button.active:hover::before {
+		height: 24px;
+	}
+}
