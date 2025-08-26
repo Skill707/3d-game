@@ -1,7 +1,6 @@
 import { produce } from "immer";
 import * as THREE from "three";
 
-
 // Проверяет, можно ли прикрепить деталь
 export function canAttachParts(part1, part2, attachPoint) {
 	// Проверяем, не прикреплены ли уже детали друг к другу
@@ -60,7 +59,7 @@ export function wouldFormCycle(parts, part1Id, part2Id) {
 	return attachedToPart1.has(part2Id);
 }
 
-function moveAttached(id, attachedParts,objects) {
+export function moveAttached(id, attachedParts, objects) {
 	if (!attachedParts) return;
 	attachedParts.forEach((part) => {
 		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
@@ -68,19 +67,6 @@ function moveAttached(id, attachedParts,objects) {
 		obj.position.copy(new THREE.Vector3(...selObj.position).add(new THREE.Vector3().fromArray(part.offset)));
 		const found = obj.userData;
 		if (!found) return;
-		moveAttached(found.id, found.attachedParts);
-	});
-}
-
-function saveAttaced(id, attachedParts,objects,parts) {
-	if (!attachedParts) return;
-	attachedParts.forEach((part) => {
-		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
-		const selObjPos = selObj.position.clone().add(new THREE.Vector3().fromArray(part.offset));
-		const par = parts.find((p) => p.id === part.id);
-		par.pos = [selObjPos.x, selObjPos.y, selObjPos.z];
-		//par.rot = [selObj.rotation.x, selObj.rotation.y, selObj.rotation.z];
-
-		saveAttaced(par.id, par.attachedParts);
+		moveAttached(found.id, found.attachedParts, objects);
 	});
 }

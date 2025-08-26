@@ -25,7 +25,6 @@ export function SideButtons() {
 						border: isActive ? "2px solid #f00" : "2px solid #eee",
 					}}
 					onClick={() => {
-						console.log("Trash icon clicked");
 						removePart(setPartsStorage, selectedID);
 					}}
 				>

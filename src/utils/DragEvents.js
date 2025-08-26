@@ -1,22 +1,20 @@
-import { produce } from "immer";
-import * as THREE from "three";
 import { Part } from "./partFactory";
-
+import { saveTransformation, transformSelectedObject } from "../utils/transformUtils";
+import { moveAttached } from "./attachmentUtils";
 export const onClick = (e, setPartsStorage) => {
 	const button = e.button;
 
-	console.log("click", e.object.name);
-
-	setPartsStorage((prev) => {
-		const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
-		return { ...prev, selectedPart: selectedPart };
-	});
+	if (button === 0) {
+		setPartsStorage((prev) => {
+			const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
+			return { ...prev, selectedPart: selectedPart };
+		});
+	}
 };
 
 export const onDragStart = (e, orbit, setPartsStorage) => {
 	const button = e.button;
 	orbit.current.enabled = false;
-	console.log("start", e.object.name);
 
 	setPartsStorage((prev) => {
 		const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
@@ -50,49 +48,22 @@ export const onDragStart = (e, orbit, setPartsStorage) => {
 export const onDrag = (e) => {
 	const selectedPart = e.object.userData;
 	const objects = e.objects;
+	if (selectedPart.attachedParts.length > 0) {
+		moveAttached(selectedPart.id, selectedPart.attachedParts, objects);
+	}
 	const hit = e.hit;
-
-	//moveAttached(selectedPart.id, selectedPart.attachedParts);
+	if (!hit) return;
+	transformSelectedObject(e.object, hit);
+	if (selectedPart.attachedParts.length > 0) {
+		moveAttached(selectedPart.id, selectedPart.attachedParts, objects);
+	}
 };
 
 export const onDragEnd = (e, orbit, setPartsStorage) => {
 	orbit.current.enabled = true;
 	const destroy = e.destroy;
+	saveTransformation(setPartsStorage, e.object, e.objects, e.lastHit);
 	destroy();
-	setPartsStorage(
-		produce((draft) => {
-			console.log("end parts: ", JSON.stringify(draft.parts.map((p) => p.id)));
-			const selectedPart = draft.parts.find((p) => p.objectName === e.object.name);
-			selectedPart.drag = false;
-			// можно ещё сохранить финальную pos/rot сюда
-			selectedPart.pos = [e.object.position.x, e.object.position.y, e.object.position.z];
-			selectedPart.rot = [e.object.rotation.x, e.object.rotation.y, e.object.rotation.z];
-			draft.selectedPart = null; // кастыль
-			draft.selectedPart = selectedPart;
-
-			/*
-			const objects = e.objects;
-			const lastHit = e.lastHit;
-			if (!objects || !lastHit) return;
-			const attachTo = lastHit.object.name;
-			const hitGroupObject = lastHit.object.parent;
-			const hitPart = hitGroupObject.userData;
-
-			if (hitGroupObject) {
-				selectedPart.attachedToPart = hitPart.id;
-				const foundPart = draft.parts.find((p) => p.id === hitPart.id);
-				//foundPart.shape.sections[0] = p.shape.sections[0];
-				if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id))
-					foundPart.attachedParts.push({
-						id: selectedPart.id,
-						offset: new THREE.Vector3().subVectors(e.object.position, hitGroupObject.position).toArray(),
-						name: attachTo,
-					});
-			}*/
-		})
-	);
-	const selectedPart = e.object.userData;
-	//saveAttaced(selectedPart.id, selectedPart.attachedParts);
 };
 
 export const onHoverOff = (e) => {};

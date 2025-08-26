@@ -1,3 +1,4 @@
+import { produce } from "immer";
 import * as THREE from "three";
 
 // Вычисляет разницу между двумя позициями
@@ -91,7 +92,7 @@ export function matrix4ToEuler(input) {
 	return null;
 }
 
-function transformSelectedObject(selectedObject, hit) {
+export function transformSelectedObject(selectedObject, hit) {
 	const point = hit.point.clone();
 	const attachTo = hit.object.name;
 	const localNormal = hit.normal;
@@ -135,3 +136,58 @@ function transformSelectedObject(selectedObject, hit) {
 	selectedObject.position.copy(finalPosition);
 	selectedObject.rotation.copy(finalRotation);
 }
+
+export const saveTransformation = (setPartsStorage, object, objects = null, lastHit = null) => {
+	setPartsStorage(
+		produce((draft) => {
+			const selectedPart = draft.parts.find((p) => p.objectName === object.name);
+			selectedPart.drag = false;
+			// можно ещё сохранить финальную pos/rot сюда
+			selectedPart.pos = [object.position.x, object.position.y, object.position.z];
+			selectedPart.rot = [object.rotation.x, object.rotation.y, object.rotation.z];
+			draft.selectedPart = null; // кастыль
+			draft.selectedPart = selectedPart;
+
+			if (lastHit) {
+				const attachTo = lastHit.object.name;
+				const hitGroupObject = lastHit.object.parent;
+				const hitPart = hitGroupObject.userData;
+
+				if (hitGroupObject) {
+					selectedPart.attachedToPart = hitPart.id;
+					const foundPart = draft.parts.find((p) => p.id === hitPart.id);
+					//foundPart.shape.sections[0] = p.shape.sections[0];
+					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id))
+						foundPart.attachedParts.push({
+							id: selectedPart.id,
+							offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+							name: attachTo,
+						});
+				}
+			}
+			function saveAttaced(id, attachedParts, objects) {
+				if (!attachedParts) return;
+				attachedParts.forEach((part) => {
+					const selObj = objects.find((obj) => "dragPart" + id === obj.name);
+					const selObjPos = selObj.position.clone().add(new THREE.Vector3().fromArray(part.offset));
+					const par = draft.parts.find((p) => p.id === part.id);
+					par.pos = [selObjPos.x, selObjPos.y, selObjPos.z];
+					par.rot = [selObj.rotation.x, selObj.rotation.y, selObj.rotation.z];
+
+					saveAttaced(par.id, par.attachedParts, objects);
+				});
+			}
+
+			if (objects) {
+				saveAttaced(selectedPart.id, selectedPart.attachedParts, objects);
+			}
+		})
+	);
+};
+
+/*
+, handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 
+	const euler = new THREE.Euler().fromArray(part.rot);
+	const quaternion = new THREE.Quaternion().setFromEuler(euler);
+	const matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(part.pos), quaternion, new THREE.Vector3(1, 1, 1));
+*/

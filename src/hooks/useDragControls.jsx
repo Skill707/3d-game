@@ -2,24 +2,26 @@ import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { initDragControls } from "../utils/initDragControls";
 
-export function useDragControls(orbit, partsStorage, setPartsStorage, lastAddedRef) {
+export function useDragControls(enabled, orbit, partsStorage, setPartsStorage, lastAddedRef) {
 	const controlsRef = useRef(null);
 	const { scene, camera, gl } = useThree();
 
 	useEffect(() => {
-		console.log("useDragControls Effect[partsStorage]");
 		if (controlsRef.current !== null) {
-			if (controlsRef.current.enabled === false) {
+			if (controlsRef.current.enabled === false || !enabled) {
 				controlsRef.current.dispose();
 				controlsRef.current = null;
 			}
 		}
+
+		if (!enabled) return;
 
 		if (controlsRef.current === null) {
 			const objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 
 			if (objects.length > 0) controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], setPartsStorage);
 		} else {
+			controlsRef.current.objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 			if (lastAddedRef.current) {
 				const lastAddedObject = scene.getObjectByName(lastAddedRef.current) || null;
 				lastAddedRef.current = null;
@@ -31,7 +33,7 @@ export function useDragControls(orbit, partsStorage, setPartsStorage, lastAddedR
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [partsStorage]);
+	}, [partsStorage, enabled]);
 
 	return controlsRef;
 }

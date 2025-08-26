@@ -10,6 +10,7 @@ const _intersection = new Vector3();
 const _worldPosition = new Vector3();
 const _inverseMatrix = new Matrix4();
 let _drag = false;
+let _button = -1;
 
 const _up = new Vector3();
 const _right = new Vector3();
@@ -232,7 +233,7 @@ function onPointerMove(event) {
 		domElement.style.cursor = "move";
 		if (_drag === false) {
 			_drag = true;
-			this.dispatchEvent({ type: "dragstart", object: this.selected, button: event.button });
+			this.dispatchEvent({ type: "dragstart", object: this.selected, button: _button });
 		}
 		this.dispatchEvent({ type: "drag", object: this.selected, objects: this.objects, hit: _intersections[0] ?? null });
 
@@ -316,6 +317,8 @@ function onPointerDown(event) {
 		}
 
 		this.dispatchEvent({ type: "click", object: this.selected, button: event.button });
+
+		_button = event.button;
 	}
 
 	_previousPointer.copy(_pointer);
@@ -325,12 +328,15 @@ function onPointerCancel() {
 	if (this.enabled === false) return;
 
 	if (this.selected) {
-		_drag = false;
+		
 		const destroy = () => {
 			this.disconnect();
 			this.enabled = false;
 		};
-		this.dispatchEvent({ type: "dragend", object: this.selected, objects: this.objects, lastHit: _intersections[0] ?? null, destroy: destroy });
+		if (_drag === true) {
+			_drag = false;
+			this.dispatchEvent({ type: "dragend", object: this.selected, objects: this.objects, lastHit: _intersections[0] ?? null, destroy: destroy });
+		}
 		this.selected = null;
 	}
 

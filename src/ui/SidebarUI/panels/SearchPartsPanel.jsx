@@ -14,7 +14,6 @@ const panelVariants = {
 };
 
 export function SearchPartsPanel({ onClose }) {
-		console.log("SearchPartsPanel comp update");
 	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
 	const parts = partsStorage.parts;
 	const selectedID = partsStorage.selectedID;

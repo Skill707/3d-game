@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useRef, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "./panels/Menu";
 import { DesignerPanel } from "./panels/DesignerPanel";
@@ -10,19 +10,57 @@ import { ActivationGroupsPanel } from "./panels/ActivationGroupsPanel";
 import { ViewOptionsPanel } from "./panels/ViewOptionsPanel";
 import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
-import { partsAtom } from "../../state/atoms";
+import { partsAtom, settingsAtom } from "../../state/atoms";
 import { produce } from "immer";
-import { generatePoints } from "../../utils/partFactory";
+import { generatePoints, shapeRegistry } from "../../utils/partFactory";
+import { PartIconView } from "./components/PartIconView";
+import { X } from "@mui/icons-material";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
-	const [activeSubToolId, setActiveSubToolId] = useState("MOVE");
-
+	const partsIconsRef = useRef(null);
 	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
+
 	const selectedPart = partsStorage.selectedPart;
+	const activeSubToolId = settingsStorage.activeSubToolId;
+
+	const setActiveSubToolId = (id) => {
+		setSettingsStorage(
+			produce((draft) => {
+				draft.activeSubToolId = id;
+			})
+		);
+	};
 
 	const handlePanelToggle = (panelId) => {
 		setActivePanel((current) => (current === panelId ? null : panelId));
+	};
+
+	const handleMovePart = (field, value) => {
+		console.log(field, value);
+		const pos = {
+			xPos: 0,
+			yPos: 1,
+			zPos: 2,
+		};
+		const rot = {
+			xAngle: 0,
+			yAngle: 1,
+			zAngle: 2,
+		};
+		setPartsStorage(
+			produce((draft) => {
+				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
+
+				if (pos[field] !== undefined) {
+					part.pos[pos[field]] = value;
+				} else if (rot[field] !== undefined) {
+					part.rot[rot[field]] = (value * Math.PI) / 180;
+				}
+				draft.selectedPart = part;
+			})
+		);
 	};
 
 	const handleChangeSegmentProperties = (segmentName, newProperties) => {
@@ -101,6 +139,19 @@ export function SidebarUI() {
 		);
 	};
 
+	if (!partsIconsRef.current) {
+		const arr = [];
+		for (let shape in shapeRegistry) {
+			arr.push({
+				type: shape,
+				name: shape.charAt(0).toUpperCase() + shape.slice(1),
+				icon: <PartIconView partName={shape} size={128} />,
+				description: `Description for ${shape}`,
+			});
+		}
+		partsIconsRef.current = [...arr];
+	}
+
 	return (
 		<div className="SidebarUI-container">
 			<Sidebar onIconClick={handlePanelToggle} activePanel={activePanel} activeSubToolId={activeSubToolId} />
@@ -114,9 +165,14 @@ export function SidebarUI() {
 						setActiveSubToolId={setActiveSubToolId}
 						selectedPart={selectedPart}
 						handleChangeSegmentProperties={handleChangeSegmentProperties}
+						settingsStorage={settingsStorage}
+						setSettingsStorage={setSettingsStorage}
+						handleMovePart={handleMovePart}
 					/>
 				)}
-				{activePanel === "ADD_PARTS" && <AddPartsPanel key="add-parts" onClose={() => handlePanelToggle("ADD_PARTS")} />}
+				{activePanel === "ADD_PARTS" && (
+					<AddPartsPanel key="add-parts" partIcons={partsIconsRef.current} onClose={() => handlePanelToggle("ADD_PARTS")} />
+				)}
 				{activePanel === "SEARCH" && <SearchPartsPanel key="search-parts" onClose={() => handlePanelToggle("SEARCH")} />}
 				{activePanel === "PART_PROPERTIES" && (
 					<PartPropertiesPanel key="part-props" onClose={() => handlePanelToggle("PART_PROPERTIES")} selectedPart={selectedPart} />

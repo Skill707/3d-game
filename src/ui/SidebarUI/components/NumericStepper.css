@@ -1,81 +1,82 @@
 .stepper-container {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    width: 100%;
+	display: flex;
+	justify-content: space-between;
+	align-items: center;
+	width: 100%;
 }
 
 .stepper-label {
-    color: var(--text-color);
-    font-size: 0.9rem;
-    flex-shrink: 0;
-    margin-right: 1rem;
+	color: var(--text-color);
+	font-size: 0.9rem;
+	flex-shrink: 0;
+	margin-right: 1rem;
+	max-width: 33%;
 }
 
 .stepper-control {
-    display: flex;
-    align-items: center;
-    background-color: var(--tool-input-bg);
-    border: 1px solid var(--tool-input-border);
-    border-radius: 4px;
-    overflow: hidden;
-    width: 120px;
-    height: 32px;
-    flex-shrink: 0;
+	display: flex;
+	align-items: center;
+	background-color: var(--tool-input-bg);
+	border: 1px solid var(--tool-input-border);
+	border-radius: 4px;
+	overflow: hidden;
+	width: 120px;
+	height: 32px;
+	flex-shrink: 0;
 }
 
 .stepper-input {
-    flex-grow: 1;
-    width: 100%;
-    background-color: transparent;
-    border: none;
-    color: var(--text-color);
-    text-align: center;
-    font-size: 0.9rem;
-    padding: 0;
-    font-family: 'Roboto', sans-serif;
+	flex-grow: 1;
+	width: 100%;
+	background-color: transparent;
+	border: none;
+	color: var(--text-color);
+	text-align: center;
+	font-size: 0.9rem;
+	padding: 0;
+	font-family: "Roboto", sans-serif;
 }
 
 .stepper-input:focus {
-    outline: none;
+	outline: none;
 }
 
-.stepper-input[type=number]::-webkit-outer-spin-button,
-.stepper-input[type=number]::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
+.stepper-input[type="number"]::-webkit-outer-spin-button,
+.stepper-input[type="number"]::-webkit-inner-spin-button {
+	-webkit-appearance: none;
+	margin: 0;
 }
-.stepper-input[type=number] {
-    -moz-appearance: textfield;
+.stepper-input[type="number"] {
+	-moz-appearance: textfield;
 }
 
 .stepper-button {
-    background-color: transparent;
-    border: none;
-    color: var(--icon-color);
-    opacity: 0.5;
-    cursor: pointer;
-    padding: 0 4px;
-    height: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    transition: opacity 0.2s ease, color 0.2s ease;
+	background-color: transparent;
+	border: none;
+	color: var(--icon-color);
+	opacity: 0.5;
+	cursor: pointer;
+	padding: 0 4px;
+	height: 100%;
+	display: flex;
+	align-items: center;
+	justify-content: center;
+	transition: opacity 0.2s ease, color 0.2s ease;
 }
 
 .stepper-control:hover .stepper-button {
-    opacity: 1;
+	opacity: 1;
 }
 
 .stepper-button:hover {
-    color: var(--icon-hover-color);
+	color: var(--icon-hover-color);
 }
 
 .stepper-button:focus-visible {
-    outline: 1px solid var(--brand-color);
-    opacity: 1;
+	outline: 1px solid var(--brand-color);
+	opacity: 1;
 }
 
 .stepper-button svg {
-    font-size: 1.25rem;
+	font-size: 1.25rem;
 }

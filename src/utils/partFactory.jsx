@@ -1,4 +1,6 @@
+import { Billboard, Text } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
+import { PartIconView } from "../ui/SidebarUI/components/PartIconView";
 
 const segmentShapeRegistry = {
 	rectangle: { pointsCount: 4, corners: 0 },
@@ -90,16 +92,15 @@ export class Part {
 	}
 }
 
-export const CreatePart = ({ part, selected=false }) =>
-	 {
-		//console.log("part update", part.id);
+export const CreatePart = ({ part, selected = false }) => {
+	return (
+		<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
+			<ShapedPart part={part} selected={selected} />
+		</group>
+	);
+};
 
-		return (
-			<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
-				<ShapedPart part={part} selected={selected} />
-			</group>
-		);
-	}
+
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0], pinchX = 0, pinchY = 0, slant = 0, angle = 0, center = [0, 0, 0]) {
@@ -164,24 +165,15 @@ export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0]
 }
 
 /*
-	const button = useRef(null);
 
-onClick={(e) => {
-					if (!handleClickPart) return;
-					//e.stopPropagation();
-					handleClickPart(part.id);
-					console.log(`Part clicked: ${part.name} with ID: ${part.id}`);
-				}}
-			onPointerDown={(e) => {
-				button.current = typeof e.button === "number" ? e.button : e.nativeEvent && e.nativeEvent.button;
-			}}
-			onPointerUp={(e) => {
-				button.current = null;
-			}}*/
-
-/*
-, handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 
-	const euler = new THREE.Euler().fromArray(part.rot);
-	const quaternion = new THREE.Quaternion().setFromEuler(euler);
-	const matrix = new THREE.Matrix4().compose(new THREE.Vector3().fromArray(part.pos), quaternion, new THREE.Vector3(1, 1, 1));
+<Billboard
+	follow={true}
+	lockX={false}
+	lockY={false}
+	lockZ={false} // Lock the rotation on the z axis (default=false)
+>
+	<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
+		{part.id + "|" + " [" + part.attachedParts.map((part) => part.id) + "]" + " (" + part.attachedToPart + ")\n" + part.pos}
+	</Text>
+</Billboard>
 */

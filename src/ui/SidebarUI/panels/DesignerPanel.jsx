@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import {
 	Close as CloseIcon,
 	NearMe as CursorIcon,
@@ -13,7 +13,7 @@ import {
 	Add as AddIcon,
 } from "@mui/icons-material";
 import { motion } from "framer-motion";
-import { Paper, IconButton, Switch, FormControlLabel } from "@mui/material";
+import { Paper, IconButton, Switch, FormControlLabel, Box, Typography } from "@mui/material";
 import { NumericStepper } from "../components/NumericStepper";
 import { OptionStepper } from "../components/OptionStepper";
 import { SensitivitySlider } from "../components/SensitivitySlider";
@@ -37,11 +37,19 @@ const panelVariants = {
 	exit: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
 };
 
-const MuiToggleSwitch = ({ label, defaultChecked = false }) => (
+const MuiToggleSwitch = ({ label, checked = false, onChange }) => (
 	<FormControlLabel
-		control={<Switch defaultChecked={defaultChecked} />}
+		control={<Switch defaultChecked={checked} onChange={(e) => onChange(e.target.checked)} />}
 		label={label}
-		sx={{ justifyContent: "space-between", width: "100%", ml: 0, mr: 0, color: "var(--text-color)", ".MuiFormControlLabel-label": { fontSize: "0.9rem" } }}
+		sx={{
+			justifyContent: "space-between",
+			flexDirection: "row-reverse",
+			width: "100%",
+			ml: 0,
+			mr: 0,
+			color: "var(--text-color)",
+			".MuiFormControlLabel-label": { fontSize: "0.9rem" },
+		}}
 	/>
 );
 
@@ -81,54 +89,27 @@ const ColorPalette = () => {
 		</div>
 	);
 };
-
-export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, selectedPart, handleChangeSegmentProperties }) {
+export function DesignerPanel({
+	onClose,
+	activeSubToolId,
+	setActiveSubToolId,
+	selectedPart,
+	handleChangeSegmentProperties,
+	settingsStorage,
+	setSettingsStorage,
+	handleMovePart,
+}) {
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [seclectedSection, seclectSection] = useState("center");
 
-	const selectedPartPos = selectedPart ? selectedPart.pos : [0, 0, 0];
+	const toolSettings = settingsStorage;
 
-	const [toolSettings, setToolSettings] = useState({
-		move: {
-			gridSize: 0.05,
-			attachmentAngle: 15,
-		},
-		translate: {
-			gridSize: 0.05,
-			mode: "Connected",
-			direction: "Local",
-		},
-		rotate: {
-			angleStep: 15,
-			mode: "Connected",
-			direction: "Local",
-			sensitivity: 50,
-		},
-		reshape: {
-			gridSize: 0.25,
-		},
-		paint: {
-			target: "Primary",
-			theme: "Custom",
-		},
-		connections: {
-			partName: "FUEL TANK #502",
-			viewMode: "all",
-			attachPoints: [
-				{ id: 1, type: "surface", name: "Surface", connectedTo: "Fuel Tank #503 - Rotate", enabled: true },
-				{ id: 2, type: "fuel", name: "Bottom", connectedTo: "Griffin Engine #501 - Top", enabled: true },
-				{ id: 3, type: "fuel", name: "Top", connectedTo: "Fuel Tank #497 - Bottom", enabled: true },
-				{ id: 4, type: "rotate", name: "Rotate", connectedTo: null, enabled: true },
-				{ id: 5, type: "shell", name: "Top(Shell)", connectedTo: "Fuel Tank #497 - Bottom(She", enabled: true },
-				{ id: 6, type: "shell", name: "Bottom(Shell)", connectedTo: "Griffin Engine #501 - Top(She", enabled: false },
-			],
-		},
-	});
+	const segments = selectedPart?.shapeSegments;
 
-	const segments = selectedPart.shapeSegments;
+	console.log(selectedPart?.pos);
 
 	const handleSettingChange = (tool) => (field) => (newValue) => {
-		setToolSettings((prev) => ({
+		setSettingsStorage((prev) => ({
 			...prev,
 			[tool]: {
 				...prev[tool],
@@ -140,9 +121,10 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 	const handlePropertiesChange = (field) => (newValue) => {
 		const newProps = { [field]: newValue };
 		handleChangeSegmentProperties(seclectedSection, newProps);
-		setToolSettings((prev) => ({
-			...prev,
-		}));
+	};
+
+	const handleTranslateChange = (field) => (newValue) => {
+		handleMovePart(field, newValue);
 	};
 
 	// setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length)
@@ -150,7 +132,7 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 	const handleSeclectSection = (name) => seclectSection(name);
 	const handlePrevPart = () => {};
 	const handleNextPart = () => {};
-
+	/*
 	const handleConnectionToggle = (id) => {
 		setToolSettings((prev) => ({
 			...prev,
@@ -187,8 +169,16 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 			},
 		}));
 	};
+*/
 
 	const renderContent = () => {
+		if (!selectedPart) {
+			return (
+				<Box className="part-properties-empty">
+					<Typography>Select a part to view its customizable properties.</Typography>
+				</Box>
+			);
+		}
 		switch (activeSubToolId) {
 			case "MOVE": {
 				const settings = toolSettings.move;
@@ -205,11 +195,11 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 							max={90}
 							precision={0}
 						/>
-						<MuiToggleSwitch label="Show Resize Gizmos" defaultChecked />
-						<MuiToggleSwitch label="Auto Rotate Parts" defaultChecked />
-						<MuiToggleSwitch label="Show Attach Points" defaultChecked />
-						<MuiToggleSwitch label="Attach To Surfaces" defaultChecked />
-						<MuiToggleSwitch label="Auto Resize Parts" defaultChecked />
+						<MuiToggleSwitch label="Show Resize Gizmos" checked={settings.showResizeGizmos} onChange={handleChange("showResizeGizmos")} />
+						<MuiToggleSwitch label="Auto Rotate Parts" checked={settings.autoRotateParts} onChange={handleChange("autoRotateParts")} />
+						<MuiToggleSwitch label="Show Attach Points" checked={settings.showAttachPoints} onChange={handleChange("showAttachPoints")} />
+						<MuiToggleSwitch label="Attach To Surfaces" checked={settings.attachToSurfaces} onChange={handleChange("attachToSurfaces")} />
+						<MuiToggleSwitch label="Auto Resize Parts" checked={settings.autoResizeParts} onChange={handleChange("autoResizeParts")} />
 					</>
 				);
 			}
@@ -225,25 +215,25 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 						<h3 className="tool-sub-header">POSITION</h3>
 						<NumericStepper
 							label="X-Pos"
-							value={selectedPartPos[0]}
-							onChange={handleChange("xPos")}
-							step={0.001}
+							value={selectedPart.pos[0]}
+							onChange={handleTranslateChange("xPos")}
+							step={settings.gridSize}
 							precision={3}
 							labelColor="#ED4245"
 						/>
 						<NumericStepper
 							label="Y-Pos"
-							value={selectedPartPos[1]}
-							onChange={handleChange("yPos")}
-							step={0.001}
+							value={selectedPart.pos[1]}
+							onChange={handleTranslateChange("yPos")}
+							step={settings.gridSize}
 							precision={3}
 							labelColor="#3BA55D"
 						/>
 						<NumericStepper
 							label="Z-Pos"
-							value={selectedPartPos[2]}
-							onChange={handleChange("zPos")}
-							step={0.001}
+							value={selectedPart.pos[2]}
+							onChange={handleTranslateChange("zPos")}
+							step={settings.gridSize}
 							precision={3}
 							labelColor="#3B82F6"
 						/>
@@ -259,19 +249,40 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 							label="Angle Step"
 							value={settings.angleStep}
 							onChange={handleChange("angleStep")}
-							step={1}
-							min={1}
+							step={5}
+							min={0.01}
 							max={90}
 							precision={0}
 						/>
-						<OptionStepper label="Mode" value={settings.mode} onChange={handleChange("mode")} options={["Connected", "Free"]} />
+						<OptionStepper label="Mode" value={settings.mode} onChange={handleChange("mode")} options={["Connected", "Self"]} />
 						<OptionStepper label="Direction" value={settings.direction} onChange={handleChange("direction")} options={["Local", "World"]} />
 						<SensitivitySlider label="Sensitivity" value={settings.sensitivity} onChange={handleChange("sensitivity")} />
 						<hr className="tool-separator" />
 						<h3 className="tool-sub-header">ROTATION</h3>
-						<NumericStepper label="X-Angle" value={settings.xAngle} onChange={handleChange("xAngle")} step={1} precision={0} labelColor="#ED4245" />
-						<NumericStepper label="Y-Angle" value={settings.yAngle} onChange={handleChange("yAngle")} step={1} precision={0} labelColor="#3BA55D" />
-						<NumericStepper label="Z-Angle" value={settings.zAngle} onChange={handleChange("zAngle")} step={1} precision={0} labelColor="#3B82F6" />
+						<NumericStepper
+							label="X-Angle"
+							value={selectedPart.rot[0] * 57.2958}
+							onChange={handleTranslateChange("xAngle")}
+							step={settings.angleStep}
+							precision={0}
+							labelColor="#ED4245"
+						/>
+						<NumericStepper
+							label="Y-Angle"
+							value={selectedPart.rot[1] * 57.2958}
+							onChange={handleTranslateChange("yAngle")}
+							step={settings.angleStep}
+							precision={0}
+							labelColor="#3BA55D"
+						/>
+						<NumericStepper
+							label="Z-Angle"
+							value={selectedPart.rot[2] * 57.2958}
+							onChange={handleTranslateChange("zAngle")}
+							step={settings.angleStep}
+							precision={0}
+							labelColor="#3B82F6"
+						/>
 					</>
 				);
 			}
@@ -427,7 +438,7 @@ export function DesignerPanel({ onClose, activeSubToolId, setActiveSubToolId, se
 								//const part = parts.find((p) => p.id === id);
 								//return <ConnectionItem key={id} connection={part} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />;
 							})}
-							<button className="add-connection-btn" onClick={handleAddConnection}>
+							<button className="add-connection-btn" onClick={null}>
 								<AddIcon />
 								<span>Add New Connection</span>
 							</button>
