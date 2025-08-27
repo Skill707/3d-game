@@ -225,7 +225,7 @@ function onPointerMove(event) {
 
 		_intersections.length = 0;
 		raycaster.intersectObjects(
-			this.objects.filter((o) => o !== this.selected),
+			this.objects.filter((o) => o !== this.selected && o.userData.attachedToPart !== this.selected.userData.id),
 			this.recursive,
 			_intersections
 		);
@@ -328,7 +328,6 @@ function onPointerCancel() {
 	if (this.enabled === false) return;
 
 	if (this.selected) {
-		
 		const destroy = () => {
 			this.disconnect();
 			this.enabled = false;

@@ -1,22 +1,18 @@
 import { Part } from "./partFactory";
 import { saveTransformation, transformSelectedObject } from "../utils/transformUtils";
 import { moveAttached } from "./attachmentUtils";
-export const onClick = (e, setPartsStorage) => {
+export const onClick = (e, partsStorageAPI) => {
 	const button = e.button;
-
 	if (button === 0) {
-		setPartsStorage((prev) => {
-			const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
-			return { ...prev, selectedPart: selectedPart };
-		});
+		partsStorageAPI({ selectPart: e.object.name, commit: 0 });
 	}
 };
 
-export const onDragStart = (e, orbit, setPartsStorage) => {
+export const onDragStart = (e, orbit, partsStorageAPI) => {
 	const button = e.button;
 	orbit.current.enabled = false;
 
-	setPartsStorage((prev) => {
+	partsStorageAPI((prev) => {
 		const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
 		let parts = prev.parts;
 		if (button === 2) {
@@ -59,13 +55,10 @@ export const onDrag = (e) => {
 	}
 };
 
-export const onDragEnd = (e, orbit, setPartsStorage) => {
+export const onDragEnd = (e, orbit, partsStorageAPI) => {
 	orbit.current.enabled = true;
 	const destroy = e.destroy;
-	saveTransformation(setPartsStorage, e.object, e.objects, e.lastHit);
+	saveTransformation(partsStorageAPI, e.object, e.objects, e.lastHit);
+	//partsStorageAPI({ commit: null });
 	destroy();
 };
-
-export const onHoverOff = (e) => {};
-
-export const onHoverOn = (e) => {};

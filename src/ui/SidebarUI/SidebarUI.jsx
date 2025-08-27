@@ -10,15 +10,16 @@ import { ActivationGroupsPanel } from "./panels/ActivationGroupsPanel";
 import { ViewOptionsPanel } from "./panels/ViewOptionsPanel";
 import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
-import { partsAtom, settingsAtom } from "../../state/atoms";
+import { settingsAtom } from "../../state/atoms";
 import { produce } from "immer";
 import { generatePoints, shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
+import partsStorageAtom from "../../state/partsStorageAtom";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
 	const partsIconsRef = useRef(null);
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 
 	const selectedPart = partsStorage.selectedPart;
@@ -47,7 +48,7 @@ export function SidebarUI() {
 			yAngle: 1,
 			zAngle: 2,
 		};
-		setPartsStorage(
+		partsStorageAPI(
 			produce((draft) => {
 				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
 
@@ -62,7 +63,7 @@ export function SidebarUI() {
 	};
 
 	const handleChangeSegmentProperties = (segmentName, newProperties) => {
-		setPartsStorage(
+		partsStorageAPI(
 			produce((draft) => {
 				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
 				part.shapeSegments[segmentName] = { ...part.shapeSegments[segmentName], ...newProperties };
@@ -154,7 +155,7 @@ export function SidebarUI() {
 		<div className="SidebarUI-container">
 			<Sidebar onIconClick={handlePanelToggle} activePanel={activePanel} activeSubToolId={activeSubToolId} />
 			<AnimatePresence>
-				{activePanel === "MENU" && <Menu key="menu" onClose={() => handlePanelToggle("MENU")} />}
+				{activePanel === "MENU" && <Menu partsStorageAPI={partsStorageAPI} key="menu" onClose={() => handlePanelToggle("MENU")} />}
 				{activePanel === "DESIGNER" && (
 					<DesignerPanel
 						key="designer"

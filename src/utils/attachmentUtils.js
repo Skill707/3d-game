@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import * as THREE from "three";
 
 // Проверяет, можно ли прикрепить деталь
@@ -30,27 +29,6 @@ export function getAttachedPartsRecursive(parts, startPartId, visited = new Set(
 	}
 
 	return visited;
-}
-
-// Отсоединяет деталь и все прикрепленные к ней детали
-export function detachPartAndChildren(setPartsStorage, partId) {
-	setPartsStorage(
-		produce((draft) => {
-			const parts = draft.parts;
-			const attachedParts = getAttachedPartsRecursive(parts, partId);
-
-			// Для каждой детали в группе
-			for (const id of attachedParts) {
-				const part = parts.find((p) => p.id === id);
-				if (part) {
-					// Очищаем все прикрепления
-					part.attachedPartIDs.front = [];
-					part.attachedPartIDs.back = [];
-					part.attachedPartIDs.side = [];
-				}
-			}
-		})
-	);
 }
 
 // Проверяет, образуют ли детали цикл при прикреплении

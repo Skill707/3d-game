@@ -1,15 +1,15 @@
 import { useAtom } from "jotai";
-import { partsAtom } from "../../state/atoms";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { removePart } from "../../state/actions";
+import partsStorageAtom from "../../state/partsStorageAtom";
+
 
 export function SideButtons() {
 	const isActive = true;
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
-	const selectedID = partsStorage.selectedID;
+	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
+	const selectedPart = partsStorage.selectedPart;
 	return (
 		<div className="SidebuttonsUI-container">
-			{selectedID != null && (
+			{selectedPart != null && (
 				<div
 					id="trash-icon"
 					style={{
@@ -25,7 +25,7 @@ export function SideButtons() {
 						border: isActive ? "2px solid #f00" : "2px solid #eee",
 					}}
 					onClick={() => {
-						removePart(setPartsStorage, selectedID);
+						
 					}}
 				>
 					<DeleteIcon style={{ color: isActive ? "#f00" : "#888", fontSize: 36 }} />

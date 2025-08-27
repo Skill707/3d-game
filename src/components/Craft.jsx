@@ -1,25 +1,29 @@
 import { useAtom } from "jotai";
 import { useEffect, useRef } from "react";
-import { partsAtom, settingsAtom } from "../state/atoms";
+import { settingsAtom } from "../state/atoms";
 import { CreatePart } from "../utils/partFactory";
 import { useDragControls } from "../hooks/useDragControls";
 import { TransformControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
-import partsStorageAPI from "../utils/partsStorageAPI";
+import partsStorageAtom from "../state/partsStorageAtom";
+import { saveTransformation } from "../utils/transformUtils";
 
 const Craft = ({ orbit }) => {
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
 	const { scene } = useThree();
 
-	const partsAPI = partsStorageAPI(partsStorage, setPartsStorage);
-
-	const dragControlsRef = useDragControls(settingsStorage.activeSubToolId === "MOVE", orbit, partsStorage, setPartsStorage, lastAddedRef, settingsStorage);
+	const dragControlsRef = useDragControls(settingsStorage.activeSubToolId === "MOVE", orbit, partsStorage, partsStorageAPI, lastAddedRef, settingsStorage);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
-			const changes = partsAPI.start().addPart(settingsStorage.addParts.selectedPartType).commit();
+			const changes = partsStorageAPI({
+				addPart: settingsStorage.addParts.selectedPartType,
+				commit: true,
+			});
+			console.log(changes);
+
 			lastAddedRef.current = "dragPart" + changes[0].id;
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -39,9 +43,9 @@ const Craft = ({ orbit }) => {
 	}
 	const handleEndTransform = () => {
 		if (transformObject) {
-			//saveTransformation(setPartsStorage, transformObject, objects);
-			const changes = partsAPI.start().saveTransformation(transformObject).saveAttached(transformObject.userData, objects).commit();
-			console.log("changes", changes);
+			saveTransformation(partsStorageAPI, transformObject, objects);
+			//const changes = partsAPI.start().saveTransformation(transformObject).saveAttached(transformObject.userData, objects).commit();
+			//console.log("changes", changes);
 		}
 	};
 	return (

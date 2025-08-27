@@ -1,11 +1,7 @@
-import React from "react";
 import { Close as CloseIcon, Settings as GearIcon, FileUpload as UploadIcon, CameraAlt as CameraIcon } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import { Box, Typography, Button, IconButton, Stack, Paper } from "@mui/material";
 import "./styles/Menu.css";
-import { useAtom } from "jotai";
-import { partsAtom } from "../../../state/atoms";
-import { Part } from "../../../utils/partFactory";
 
 const panelVariants = {
 	hidden: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
@@ -13,8 +9,7 @@ const panelVariants = {
 	exit: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
 };
 
-export function Menu({ onClose }) {
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+export function Menu({ onClose, partsStorageAPI }) {
 	const menuButtons1 = ["DOWNLOAD CRAFTS", "NEW CRAFT", "LOAD CRAFT", "SAVE CRAFT"];
 	const menuButtons2 = ["REPORT A BUG", "EXIT DESIGNER"];
 
@@ -37,8 +32,7 @@ export function Menu({ onClose }) {
 							fullWidth
 							className="menu-button"
 							onClick={() => {
-								const newPart = new Part({ id: 0, name: "fueltank", root: true });
-								setPartsStorage({ parts: [newPart], selectedPart: null });
+								partsStorageAPI({ restart: 0 });
 							}}
 						>
 							{label}

@@ -2,7 +2,7 @@
 import { DragControls } from "../utils/MyDragControls.js";
 import { onDragStart, onDrag, onDragEnd, onClick } from "../utils/DragEvents.js";
 
-export const initDragControls = (objects, threeStuff, setPartsStorage) => {
+export const initDragControls = (objects, threeStuff, partsStorageAPI) => {
 	const [camera, domElement, orbit] = threeStuff;
 	const controls = new DragControls(objects, camera, domElement);
 
@@ -11,9 +11,9 @@ export const initDragControls = (objects, threeStuff, setPartsStorage) => {
 		LEFT: 1,
 		RIGHT: 1,
 	};
-	controls.addEventListener("click", (e) => onClick(e, setPartsStorage));
-	controls.addEventListener("dragstart", (e) => onDragStart(e, orbit, setPartsStorage));
+	controls.addEventListener("click", (e) => onClick(e, partsStorageAPI));
+	controls.addEventListener("dragstart", (e) => onDragStart(e, orbit, partsStorageAPI));
 	controls.addEventListener("drag", onDrag);
-	controls.addEventListener("dragend", (e) => onDragEnd(e, orbit, setPartsStorage));
+	controls.addEventListener("dragend", (e) => onDragEnd(e, orbit, partsStorageAPI));
 	return controls;
 };

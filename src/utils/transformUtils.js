@@ -137,8 +137,8 @@ export function transformSelectedObject(selectedObject, hit) {
 	selectedObject.rotation.copy(finalRotation);
 }
 
-export const saveTransformation = (setPartsStorage, object, objects = null, lastHit = null, autoResizeParts = false) => {
-	setPartsStorage(
+export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
+	partsStorageAPI(
 		produce((draft) => {
 			const selectedPart = draft.parts.find((p) => p.objectName === object.name);
 			selectedPart.drag = false;
@@ -179,7 +179,7 @@ export const saveTransformation = (setPartsStorage, object, objects = null, last
 				}
 			}
 			function saveAttaced(id, attachedParts, objects) {
-				if (!attachedParts) return;
+				if (!attachedParts || !objects || !id) return;
 				attachedParts.forEach((part) => {
 					const selObj = objects.find((obj) => "dragPart" + id === obj.name);
 					const selObjPos = selObj.position.clone().add(new THREE.Vector3().fromArray(part.offset));

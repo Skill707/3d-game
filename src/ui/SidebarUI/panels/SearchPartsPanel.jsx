@@ -1,10 +1,9 @@
-import React from "react";
 import { useAtom } from "jotai";
-import { partsAtom } from "../../../state/atoms";
 import { Box, Paper, Typography, IconButton, Button } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import "./styles/SearchPartsPanel.css";
+import partsStorageAtom from "../../../state/partsStorageAtom";
 
 const panelVariants = {
 	hidden: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
@@ -13,13 +12,11 @@ const panelVariants = {
 };
 
 export function SearchPartsPanel({ onClose }) {
-	const [partsStorage] = useAtom(partsAtom);
+	const [partsStorage] = useAtom(partsStorageAtom);
 	const parts = partsStorage.parts;
-	const selectedID = partsStorage.selectedID;
-	const selectedPart = parts.find((p) => p.id === selectedID) || null;
+	const selectedPart = partsStorage.selectedPart;
 
-	const handleSelectPart = (id) => {
-	};
+	const handleSelectPart = (id) => {};
 
 	return (
 		<motion.div className="panel-wrapper search-parts-panel-wrapper" variants={panelVariants} initial="hidden" animate="visible" exit="exit">

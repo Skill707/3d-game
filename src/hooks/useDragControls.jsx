@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { initDragControls } from "../utils/initDragControls";
 
-export function useDragControls(enabled, orbit, partsStorage, setPartsStorage, lastAddedRef) {
+export function useDragControls(enabled, orbit, partsStorage, partsStorageAPI, lastAddedRef) {
 	const controlsRef = useRef(null);
 	const { scene, camera, gl } = useThree();
 
@@ -19,7 +19,7 @@ export function useDragControls(enabled, orbit, partsStorage, setPartsStorage, l
 		if (controlsRef.current === null) {
 			const objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 
-			if (objects.length > 0) controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], setPartsStorage);
+			if (objects.length > 0) controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], partsStorageAPI);
 		} else {
 			controlsRef.current.objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 			if (lastAddedRef.current) {
