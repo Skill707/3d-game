@@ -106,7 +106,6 @@ export function DesignerPanel({
 
 	const segments = selectedPart?.shapeSegments;
 
-	console.log(selectedPart?.pos);
 
 	const handleSettingChange = (tool) => (field) => (newValue) => {
 		setSettingsStorage((prev) => ({

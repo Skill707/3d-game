@@ -5,7 +5,6 @@ import { Box, Paper, Typography, IconButton, Button } from "@mui/material";
 import { Close as CloseIcon } from "@mui/icons-material";
 import { motion } from "framer-motion";
 import "./styles/SearchPartsPanel.css";
-import { selectPartByID } from "../../../state/actions";
 
 const panelVariants = {
 	hidden: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
@@ -14,13 +13,12 @@ const panelVariants = {
 };
 
 export function SearchPartsPanel({ onClose }) {
-	const [partsStorage, setPartsStorage] = useAtom(partsAtom);
+	const [partsStorage] = useAtom(partsAtom);
 	const parts = partsStorage.parts;
 	const selectedID = partsStorage.selectedID;
 	const selectedPart = parts.find((p) => p.id === selectedID) || null;
 
 	const handleSelectPart = (id) => {
-		selectPartByID(setPartsStorage, id);
 	};
 
 	return (

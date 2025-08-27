@@ -1,6 +1,5 @@
 import { Billboard, Text } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
-import { PartIconView } from "../ui/SidebarUI/components/PartIconView";
 
 const segmentShapeRegistry = {
 	rectangle: { pointsCount: 4, corners: 0 },
@@ -96,11 +95,19 @@ export const CreatePart = ({ part, selected = false }) => {
 	return (
 		<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
 			<ShapedPart part={part} selected={selected} />
+			<Billboard
+				follow={true}
+				lockX={false}
+				lockY={false}
+				lockZ={false} // Lock the rotation on the z axis (default=false)
+			>
+				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
+					{part.objectName + "|" + " [" + part.attachedParts.map((part) => part.id) + "]" + " (" + part.attachedToPart + ")\n"}
+				</Text>
+			</Billboard>
 		</group>
 	);
 };
-
-
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0], pinchX = 0, pinchY = 0, slant = 0, angle = 0, center = [0, 0, 0]) {
@@ -166,14 +173,5 @@ export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0]
 
 /*
 
-<Billboard
-	follow={true}
-	lockX={false}
-	lockY={false}
-	lockZ={false} // Lock the rotation on the z axis (default=false)
->
-	<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-		{part.id + "|" + " [" + part.attachedParts.map((part) => part.id) + "]" + " (" + part.attachedToPart + ")\n" + part.pos}
-	</Text>
-</Billboard>
+
 */

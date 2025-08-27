@@ -58,7 +58,7 @@ export function AircraftEditorScene() {
 			<OrientationMessage />
 			<AircraftEditorUI />
 			<Canvas ref={canvasRef} shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
-				<Suspense fallback={null}>
+				<Suspense fallback={()=>{console.log("fallback")}}>
 					<ambientLight intensity={0.7} />
 					<directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
 					<Grid

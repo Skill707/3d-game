@@ -2,7 +2,6 @@ import { Segment } from "../ShapedForm/Segment";
 import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
 import { useMemo } from "react";
 import * as THREE from "three";
-import { Text } from "@react-three/drei";
 export function ShapedPart({ part, selected }) {
 	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: selected ? "orange" : part.color, side: THREE.DoubleSide }), [selected, part.color]);
 	const segments = part.shapeSegments;
@@ -43,9 +42,7 @@ function AddButton({ position = [0, 0, 0], name }) {
 				<boxGeometry args={[0.5, 0.5, 0.05]} />
 				<meshBasicMaterial color="green" />
 			</mesh>
-			<Text position={[0, 0, 0.06]} fontSize={0.5} color="white" anchorX="center" anchorY="middle">
-				{name}
-			</Text>
+		
 		</group>
 	);
 }

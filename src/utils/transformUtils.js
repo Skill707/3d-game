@@ -137,7 +137,7 @@ export function transformSelectedObject(selectedObject, hit) {
 	selectedObject.rotation.copy(finalRotation);
 }
 
-export const saveTransformation = (setPartsStorage, object, objects = null, lastHit = null) => {
+export const saveTransformation = (setPartsStorage, object, objects = null, lastHit = null, autoResizeParts = false) => {
 	setPartsStorage(
 		produce((draft) => {
 			const selectedPart = draft.parts.find((p) => p.objectName === object.name);
@@ -154,15 +154,28 @@ export const saveTransformation = (setPartsStorage, object, objects = null, last
 				const hitPart = hitGroupObject.userData;
 
 				if (hitGroupObject) {
-					selectedPart.attachedToPart = hitPart.id;
 					const foundPart = draft.parts.find((p) => p.id === hitPart.id);
 					//foundPart.shape.sections[0] = p.shape.sections[0];
-					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id))
-						foundPart.attachedParts.push({
-							id: selectedPart.id,
-							offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
-							name: attachTo,
-						});
+					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id)) selectedPart.attachedToPart = hitPart.id;
+					foundPart.attachedParts.push({
+						id: selectedPart.id,
+						offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+						name: attachTo,
+					});
+					if (autoResizeParts) {
+						if (attachTo !== "side") {
+							let otherSide = "front";
+							if (attachTo === "front") otherSide = "back";
+							const foundShape = foundPart.shapeSegments[attachTo];
+							const selectedShape = selectedPart.shapeSegments[otherSide];
+
+							selectedPart.shapeSegments[otherSide] = {
+								...foundShape,
+								name: selectedShape.name,
+								pos: selectedShape.pos,
+							};
+						}
+					}
 				}
 			}
 			function saveAttaced(id, attachedParts, objects) {
@@ -184,6 +197,16 @@ export const saveTransformation = (setPartsStorage, object, objects = null, last
 		})
 	);
 };
+
+/**
+ * Обновляет трансформации всех деталей в draft.
+ * @param {Object3D} Object3D 
+ * @param {Array} Vector3 Array 
+ * @returns {THREE.Vector3} Vector3
+ */
+export function clonePosWithOffset(Object3D, offset) {
+	return Object3D.position.clone().add(new THREE.Vector3().fromArray(offset));
+}
 
 /*
 , handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 

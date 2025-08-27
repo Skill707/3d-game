@@ -14,7 +14,6 @@ import { partsAtom, settingsAtom } from "../../state/atoms";
 import { produce } from "immer";
 import { generatePoints, shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
-import { X } from "@mui/icons-material";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -38,7 +37,6 @@ export function SidebarUI() {
 	};
 
 	const handleMovePart = (field, value) => {
-		console.log(field, value);
 		const pos = {
 			xPos: 0,
 			yPos: 1,
