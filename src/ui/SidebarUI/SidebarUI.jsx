@@ -12,7 +12,7 @@ import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
 import { settingsAtom } from "../../state/atoms";
 import { produce } from "immer";
-import { generatePoints, shapeRegistry } from "../../utils/partFactory";
+import { shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
 
@@ -62,80 +62,80 @@ export function SidebarUI() {
 		);
 	};
 
-	const handleChangeSegmentProperties = (segmentName, newProperties) => {
-		partsStorageAPI(
-			produce((draft) => {
-				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
-				part.shapeSegments[segmentName] = { ...part.shapeSegments[segmentName], ...newProperties };
-				let props = [];
-				for (const key in newProperties) {
-					props.push(key);
-				}
+	const otherSide = (side) => {
+		if (side === "front") return "back";
+		return "front";
+	};
 
-				if (props[0] === "corners") {
-					part.shapeSegments[segmentName].corner1 = part.shapeSegments[segmentName].corners;
-					part.shapeSegments[segmentName].corner2 = part.shapeSegments[segmentName].corners;
-					part.shapeSegments[segmentName].corner3 = part.shapeSegments[segmentName].corners;
-					part.shapeSegments[segmentName].corner4 = part.shapeSegments[segmentName].corners;
-				} else if (props[0] === "length") {
-					part.shapeSegments.front.pos[2] = part.shapeSegments.center.length / 2;
-					part.shapeSegments.back.pos[2] = -part.shapeSegments.center.length / 2;
-				} else if (props[0] === "xOffset") {
-					part.shapeSegments.front.pos[0] = part.shapeSegments.center.xOffset / 2;
-					part.shapeSegments.back.pos[0] = -part.shapeSegments.center.xOffset / 2;
-				} else if (props[0] === "zOffset") {
-					part.shapeSegments.front.pos[1] = part.shapeSegments.center.zOffset / 2;
-					part.shapeSegments.back.pos[1] = -part.shapeSegments.center.zOffset / 2;
-				} else if (props[0] === "pinchX" || props[0] === "pinchY" || props[0] === "slantF" || props[0] === "slantB" || props[0] === "angle") {
-					part.shapeSegments.front.points = generatePoints(
-						part.shapeSegments.front.pointsCount,
-						[part.shapeSegments.front.width, part.shapeSegments.front.height],
-						[
-							part.shapeSegments.front.corner1 * 0.01,
-							part.shapeSegments.front.corner2 * 0.01,
-							part.shapeSegments.front.corner3 * 0.01,
-							part.shapeSegments.front.corner4 * 0.01,
-						],
-						part.shapeSegments.center.pinchX * 0.01,
-						part.shapeSegments.center.pinchY * 0.01,
-						part.shapeSegments.center.slantF * 0.01,
-						part.shapeSegments.center.angle * 0.01
-					);
-					part.shapeSegments.back.points = generatePoints(
-						part.shapeSegments.back.pointsCount,
-						[part.shapeSegments.back.width, part.shapeSegments.back.height],
-						[
-							part.shapeSegments.back.corner1 * 0.01,
-							part.shapeSegments.back.corner2 * 0.01,
-							part.shapeSegments.back.corner3 * 0.01,
-							part.shapeSegments.back.corner4 * 0.01,
-						],
-						part.shapeSegments.center.pinchX * 0.01,
-						part.shapeSegments.center.pinchY * 0.01,
-						part.shapeSegments.center.slantB * 0.01,
-						part.shapeSegments.center.angle * 0.01
-					);
-				}
+	const handleChangeSegmentProperties = (part, segmentName, newProperties) => {
+		let parts = null;
+		let tasks = {};
+		if (segmentName === "center") {
+			parts = [
+				{ id: part.id, segmentName: "front" },
+				{ id: part.id, segmentName: "back" },
+			];
+			tasks = { updatePartCenter: { part, newProperties } };
+		} else {
+			parts = [{ id: part.id, segmentName: segmentName }];
+		}
 
-				if (segmentName !== "center") {
-					part.shapeSegments[segmentName].points = generatePoints(
-						part.shapeSegments[segmentName].pointsCount,
-						[part.shapeSegments[segmentName].width, part.shapeSegments[segmentName].height],
-						[
-							part.shapeSegments[segmentName].corner1 * 0.01,
-							part.shapeSegments[segmentName].corner2 * 0.01,
-							part.shapeSegments[segmentName].corner3 * 0.01,
-							part.shapeSegments[segmentName].corner4 * 0.01,
-						],
-						part.shapeSegments.center.pinchX * 0.01,
-						part.shapeSegments.center.pinchY * 0.01,
-						segmentName === "back " ? part.shapeSegments.center.slantB * 0.01 : part.shapeSegments.center.slantF * 0.01,
-						part.shapeSegments.center.angle * 0.01
-					);
-				}
-				draft.selectedPart = part;
-			})
-		);
+		part.attachedParts.forEach((attachedPart) => {
+			if (attachedPart.name === segmentName) {
+				parts.push({ id: attachedPart.id, segmentName: otherSide(attachedPart.name) });
+			}
+		});
+
+		/*let KEY = ""
+		for (const key in newProperties){
+			KEY = key
+			break
+		}
+
+		if (KEY === "length"){
+			newProperties = {
+				...newProperties,
+				pos: []
+			}
+		}*/
+
+		
+
+		tasks = {
+			...tasks,
+			updatePartsSegmentProps: { parts, newProperties },
+			commit: 0,
+		};
+
+		partsStorageAPI(tasks);
+	};
+
+	const handlePrevPart = () => {
+		selectedPart.attachedParts.forEach((attachedPart) => {
+			if (attachedPart.name === "back") {
+				partsStorageAPI({
+					selectPartbyID: attachedPart.id,
+					commit: 0,
+				});
+				return;
+			}
+		});
+		if (selectedPart.attachedToPart) {
+			partsStorageAPI({
+				selectPartbyID: selectedPart.attachedToPart,
+				commit: 0,
+			});
+		}
+	};
+	const handleNextPart = () => {
+		selectedPart.attachedParts.forEach((attachedPart) => {
+			if (attachedPart.name === "front") {
+				partsStorageAPI({
+					selectPartbyID: attachedPart.id,
+					commit: 0,
+				});
+			}
+		});
 	};
 
 	if (!partsIconsRef.current) {
@@ -167,6 +167,8 @@ export function SidebarUI() {
 						settingsStorage={settingsStorage}
 						setSettingsStorage={setSettingsStorage}
 						handleMovePart={handleMovePart}
+						handlePrevPart={handlePrevPart}
+						handleNextPart={handleNextPart}
 					/>
 				)}
 				{activePanel === "ADD_PARTS" && (
@@ -185,50 +187,3 @@ export function SidebarUI() {
 		</div>
 	);
 }
-
-/*
- <ScenePartsList
-                parts={partsOnScene}
-                onPartSelect={handlePartSelect}
-                selectedPartId={selectedPart?.id}
-              />
-              <PartsLibraryUI />
-
-                    <div className={css.toolSelectionBar}>
-        <Button
-          className={`${css.toolButton} ${currentTool === 'editor' ? css.active : ''}`}
-          onClick={() => handleToolChange('editor')}
-          variant="secondary"
-        >
-          Editor
-        </Button>
-        <Button
-          className={`${css.toolButton} ${currentTool === 'movePart' ? css.active : ''}`}
-          onClick={() => handleToolChange('movePart')}
-          variant="secondary"
-        >
-          Move Part
-        </Button>
-        <Button
-          className={`${css.toolButton} ${currentTool === 'partList' ? css.active : ''}`}
-          onClick={() => handleToolChange('partList')}
-          variant="secondary"
-        >
-          Part List
-        </Button>
-        <Button
-          className={`${css.toolButton} ${currentTool === 'searchParts' ? css.active : ''}`}
-          onClick={() => handleToolChange('searchParts')}
-          variant="secondary"
-        >
-          Search Parts
-        </Button>
-        <Button
-          className={`${css.toolButton} ${currentTool === 'partProperties' ? css.active : ''}`}
-          onClick={() => handleToolChange('partProperties')}
-          variant="secondary"
-        >
-          Part Properties
-        </Button>
-      </div>
-*/

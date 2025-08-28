@@ -1,12 +1,34 @@
 import { atom } from "jotai";
-import { Part } from "../utils/partFactory";
+import { generatePoints, Part } from "../utils/partFactory";
 import { clonePosWithOffset } from "../utils/transformUtils";
 
 const newPart = new Part({ id: 0, name: "fueltank", root: true });
 const basePartsAtom = atom({ parts: [newPart], selectedPart: null, root: true });
 
-function updatePartProperties(part, properties) {
-	return { ...part, ...properties };
+function updatePartProperties(part, newProperties) {
+	return { ...part, ...newProperties };
+}
+
+function updateShapeSegment(shapeSegments, newSegment) {
+	let newShapeSegments = structuredClone(shapeSegments);
+	newSegment.points = generatePoints(newSegment);
+	shapeSegments[newSegment.name] = newSegment;
+	return shapeSegments;
+}
+
+function updateShapeSegments(shapeSegments, newFrontSegment, newBackSegment) {
+	let newShapeSegments = structuredClone(shapeSegments);
+	const updatedFrontSegment = newFrontSegment;
+	const updatedBackSegment = newBackSegment;
+	updatedFrontSegment.points = generatePoints(updatedFrontSegment);
+	updatedBackSegment.points = generatePoints(updatedBackSegment);
+	newShapeSegments["front"] = updatedFrontSegment;
+	newShapeSegments["back"] = updatedBackSegment;
+	return newShapeSegments;
+}
+
+function updateShapeSegmentProperties(segment, newProperties) {
+	return { ...segment, ...newProperties };
 }
 
 export default atom(
@@ -14,15 +36,16 @@ export default atom(
 	(get, set, tasks) => {
 		let newState = structuredClone(get(basePartsAtom));
 		let returnChanges = [];
+		let objects = null;
 
 		if (typeof tasks === "function") {
-			console.log("action is function");
+			//console.log("action is function");
 			const newValue = tasks(newState);
 			set(basePartsAtom, newValue);
 			return "function";
 		}
 
-		function updatePartsOne(id, properties) {
+		function updatePart(id, properties) {
 			let updatedPart = null;
 			const updatedPartsList = newState.parts.map((part) => {
 				updatedPart = updatePartProperties(part, properties);
@@ -39,7 +62,7 @@ export default atom(
 		properties: {},
 	});;
 	*/
-		function updatePartsList(list) {
+		function updateParts(list) {
 			const updatedParts = list;
 			const updatedPartsList = newState.parts.map((part) => {
 				for (let index = 0; index < list.length; index++) {
@@ -61,6 +84,9 @@ export default atom(
 			restart: () => {
 				set(basePartsAtom, { parts: [newPart], selectedPart: null, root: true });
 			},
+			setObjects: (newObjects) => {
+				objects = newObjects;
+			},
 			addPart: (type) => {
 				const parts = newState.parts;
 				const newID = Math.max(0, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
@@ -77,7 +103,54 @@ export default atom(
 				newState.selectedPart = selectedPart;
 				return selectedPart;
 			},
-			saveAttached: (part, objects) => {
+			selectPartbyID: (id) => {
+				const selectedPart = newState.parts.find((p) => p.id === id) || null;
+				newState.selectedPart = selectedPart;
+				return selectedPart;
+			},
+			updatePartShape: (id, newShapeSegments) => {
+				const updatedPart = updatePart(id, {
+					shapeSegments: newShapeSegments,
+				});
+				newState.selectedPart = updatedPart;
+				return updatedPart;
+			},
+			updatePartCenter: (props) => {
+				const { part, newProperties } = props;
+				const newSegment = updateShapeSegmentProperties(part.shapeSegments.center, newProperties);
+				const newShapeSegments = part.shapeSegments;
+				newShapeSegments.center = newSegment;
+				api.updatePartShape(part.id, newShapeSegments);
+			},
+			updatePartsSegmentProps: (props) => {
+				const { parts, newProperties } = props;
+				parts.forEach((part) => {
+					const statePart = newState.parts.find((p) => p.id === part.id);
+					const newSegment = updateShapeSegmentProperties(statePart.shapeSegments[part.segmentName], newProperties);
+					const newShapeSegments = updateShapeSegment(statePart.shapeSegments, newSegment);
+					api.updatePartShape(part.id, newShapeSegments);
+				});
+			},
+			commit: () => {
+				set(basePartsAtom, newState);
+			},
+		};
+
+		for (const key in tasks) {
+			if (typeof api[key] === "function") {
+				const ret = api[key](tasks[key]);
+				returnChanges.push(ret);
+				console.log("action", key, "(", tasks[key], ") =>", ret);
+			}
+		}
+
+		return returnChanges;
+	}
+);
+
+/*
+
+	saveAttached: (part) => {
 				if ((part && part.attachedParts) || !objects) return api;
 				const recursive = (part, objects) => {
 					const id = part.id;
@@ -99,19 +172,4 @@ export default atom(
 
 				return api;
 			},
-			commit: () => {
-				set(basePartsAtom, newState);
-			},
-		};
-
-		for (const key in tasks) {
-			if (typeof api[key] === "function") {
-				const ret = api[key](tasks[key]);
-				returnChanges.push(ret);
-				console.log("action", key, "(", tasks[key], ") =>", ret);
-			}
-		}
-
-		return returnChanges;
-	}
-);
+*/

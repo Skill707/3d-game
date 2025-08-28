@@ -98,6 +98,8 @@ export function DesignerPanel({
 	settingsStorage,
 	setSettingsStorage,
 	handleMovePart,
+	handlePrevPart,
+	handleNextPart,
 }) {
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [seclectedSection, seclectSection] = useState("center");
@@ -105,7 +107,6 @@ export function DesignerPanel({
 	const toolSettings = settingsStorage;
 
 	const segments = selectedPart?.shapeSegments;
-
 
 	const handleSettingChange = (tool) => (field) => (newValue) => {
 		setSettingsStorage((prev) => ({
@@ -118,8 +119,19 @@ export function DesignerPanel({
 	};
 
 	const handlePropertiesChange = (field) => (newValue) => {
-		const newProps = { [field]: newValue };
-		handleChangeSegmentProperties(seclectedSection, newProps);
+		let newProps = {};
+		if (field === "corners") {
+			newProps = {
+				corners: newValue,
+				corner1: newValue,
+				corner2: newValue,
+				corner3: newValue,
+				corner4: newValue,
+			};
+		} else {
+			newProps = { [field]: newValue };
+		}
+		handleChangeSegmentProperties(selectedPart, seclectedSection, newProps);
 	};
 
 	const handleTranslateChange = (field) => (newValue) => {
@@ -129,8 +141,7 @@ export function DesignerPanel({
 	// setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length)
 	//const currentShapeType = shapeTypes[currentShapeIndex];
 	const handleSeclectSection = (name) => seclectSection(name);
-	const handlePrevPart = () => {};
-	const handleNextPart = () => {};
+
 	/*
 	const handleConnectionToggle = (id) => {
 		setToolSettings((prev) => ({
@@ -342,9 +353,6 @@ export function DesignerPanel({
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
-								<SensitivitySlider label="Slant F" value={segments.center.slantF} onChange={handlePropertiesChange("slantF")} min={-100} />
-								<SensitivitySlider label="Slant B" value={segments.center.slantB} onChange={handlePropertiesChange("slantB")} min={-100} />
-								<SensitivitySlider label="Angle" value={segments.center.angle} onChange={handlePropertiesChange("angle")} min={-100} />
 							</>
 						)}
 
@@ -385,12 +393,37 @@ export function DesignerPanel({
 								<SensitivitySlider label="Corner 2" value={segments[seclectedSection].corner2} onChange={handlePropertiesChange("corner2")} />
 								<SensitivitySlider label="Corner 3" value={segments[seclectedSection].corner3} onChange={handlePropertiesChange("corner3")} />
 								<SensitivitySlider label="Corner 4" value={segments[seclectedSection].corner4} onChange={handlePropertiesChange("corner4")} />
-								{/*
-								<SensitivitySlider label="Clamp 1" value={segments[seclectedSection].clamp1} onChange={handleChange("clamp1")} min={-100} />
-								<SensitivitySlider label="Clamp 2" value={segments[seclectedSection].clamp2} onChange={handleChange("clamp2")} min={-100} />
-								<SensitivitySlider label="Clamp 3" value={segments[seclectedSection].clamp3} onChange={handleChange("clamp3")} min={-100} />
-								<SensitivitySlider label="Clamp 4" value={segments[seclectedSection].clamp4} onChange={handleChange("clamp4")} min={-100} />
-								*/}
+
+								<SensitivitySlider label="Clamp 1" value={segments[seclectedSection].clamp1} onChange={handlePropertiesChange("clamp1")} />
+								<SensitivitySlider label="Clamp 2" value={segments[seclectedSection].clamp2} onChange={handlePropertiesChange("clamp2")} />
+								<SensitivitySlider label="Clamp 3" value={segments[seclectedSection].clamp3} onChange={handlePropertiesChange("clamp3")} />
+								<SensitivitySlider label="Clamp 4" value={segments[seclectedSection].clamp4} onChange={handlePropertiesChange("clamp4")} />
+								<SensitivitySlider
+									label="Pinch X"
+									value={segments[seclectedSection].pinchX}
+									onChange={handlePropertiesChange("pinchX")}
+									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider
+									label="Pinch Y"
+									value={segments[seclectedSection].pinchY}
+									onChange={handlePropertiesChange("pinchY")}
+									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider
+									label="Slant"
+									value={segments[seclectedSection].slant}
+									onChange={handlePropertiesChange("slant")}
+									min={-100}
+								/>
+								<SensitivitySlider
+									label="Angle"
+									value={segments[seclectedSection].angle}
+									onChange={handlePropertiesChange("angle")}
+									min={-100}
+								/>
 							</>
 						)}
 					</>

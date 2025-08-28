@@ -2,36 +2,36 @@ import { Billboard, Text } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
 
 const segmentShapeRegistry = {
-	rectangle: { pointsCount: 4, corners: 0 },
-	circle8: { pointsCount: 8, corners: 100 },
-	circle16: { pointsCount: 16, corners: 100 },
-	circle32: { pointsCount: 32, corners: 100 },
-	airfoil: { pointsCount: 32, corners: 100, size: [2, 0.5] },
+	rectangle: { pointsCount: 4, corners: [0, 0, 0, 0] },
+	circle8: { pointsCount: 8, corners: [100, 100, 100, 100] },
+	circle16: { pointsCount: 16, corners: [100, 100, 100, 100] },
+	circle32: { pointsCount: 32, corners: [100, 100, 100, 100] },
+	airfoil: { pointsCount: 32, corners: [100, 100, 100, 100], width: 2, height: 0.5 },
 };
 export class Segment {
 	constructor(parameters) {
+		let shape = segmentShapeRegistry[parameters.shapeName];
 		this.name = parameters.pos[2] > 0 ? "front" : "back";
 		this.pos = parameters.pos;
-		this.width = 2;
-		this.height = 2;
+		this.width = shape.width || 2;
+		this.height = shape.height || 2;
 		this.closed = parameters.closed || false;
-		this.pointsCount = segmentShapeRegistry[parameters.shapeName].pointsCount;
-		this.points = generatePoints(
-			segmentShapeRegistry[parameters.shapeName].pointsCount,
-			[2, 2],
-			[
-				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
-				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
-				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
-				segmentShapeRegistry[parameters.shapeName].corners * 0.01,
-			]
-		);
+		this.pointsCount = shape.pointsCount;
 		this.extendeble = true;
-		this.corners = segmentShapeRegistry[parameters.shapeName].corners;
-		this.corner1 = segmentShapeRegistry[parameters.shapeName].corner1 || segmentShapeRegistry[parameters.shapeName].corners;
-		this.corner2 = segmentShapeRegistry[parameters.shapeName].corner2 || segmentShapeRegistry[parameters.shapeName].corners;
-		this.corner3 = segmentShapeRegistry[parameters.shapeName].corner3 || segmentShapeRegistry[parameters.shapeName].corners;
-		this.corner4 = segmentShapeRegistry[parameters.shapeName].corner4 || segmentShapeRegistry[parameters.shapeName].corners;
+		this.corners = shape.corners.reduce((sum, val) => sum + val, 0) / shape.corners.length;
+		this.corner1 = shape.corners[0];
+		this.corner2 = shape.corners[1];
+		this.corner3 = shape.corners[2];
+		this.corner4 = shape.corners[3];
+		this.pinchX = 0;
+		this.pinchY = 0;
+		this.slant = 0;
+		this.angle = 0;
+		this.clamp1 = 0;
+		this.clamp2 = 0;
+		this.clamp3 = 0;
+		this.clamp4 = 0;
+		this.points = generatePoints(this);
 	}
 }
 
@@ -39,7 +39,7 @@ export class shapeSegments {
 	constructor(parameters) {
 		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length || 1], closed: parameters.closed });
 		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length || -1], closed: parameters.closed });
-		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, slantF: 0, slantB: 0, angle: 0 };
+		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0 };
 	}
 }
 
@@ -110,16 +110,25 @@ export const CreatePart = ({ part, selected = false }) => {
 };
 
 // eslint-disable-next-line react-refresh/only-export-components
-export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0], pinchX = 0, pinchY = 0, slant = 0, angle = 0, center = [0, 0, 0]) {
-	const [w, h] = size;
+export function generatePoints(segment) {
+	let { pointsCount, width, height, pinchX, pinchY, slant, angle } = segment;
+	const corners = [segment.corner1, segment.corner2, segment.corner3, segment.corner4].map((c) => c / 100);
+	const clapms = [segment.clamp1, segment.clamp2, segment.clamp3, segment.clamp4].map((c) => c / 100);
+	const center = [0, 0, 0];
 	const [cx, cy, cz] = center;
+	const w = width || 2;
+	const h = height || 2;
+	pinchY *= 0.01;
+	pinchX *= 0.01;
+	slant *= 0.01;
+	angle *= 0.01;
 
 	// углы ограничиваем половиной сторон
 	const [rw1, rw2, rw3, rw4] = corners.map((r) => (r * w) / 2);
 	const [rh1, rh2, rh3, rh4] = corners.map((r) => (r * h) / 2);
 
 	const rawPoints = [];
-	const cornerSegments = Math.floor(count / 4);
+	const cornerSegments = Math.floor(pointsCount / 4);
 
 	// центры дуг для каждого угла
 	const cornersCenters = [
@@ -163,15 +172,18 @@ export function generatePoints(count = 32, size = [1, 1], corners = [0, 0, 0, 0]
 	});
 
 	points = points.map(([x, y, z]) => {
-		if (x > w / 2) y += (x - w / 2) * angle;
+		y += Math.cos(Math.abs(x) * 2) * angle;
 		//Math.cos(Math.abs(x)*2)
+		return [x, y, z];
+	});
+
+	points = points.map(([x, y, z]) => {
+		y = Math.min(y, (h / 2) * (1 - clapms[0]));
+		y = Math.max(y, (-h / 2) * (1 - clapms[1]));
+		x = Math.min(x, (w / 2) * (1 - clapms[2]));
+		x = Math.max(x, (-w / 2) * (1 - clapms[3]));
 		return [x, y, z];
 	});
 
 	return points;
 }
-
-/*
-
-
-*/
