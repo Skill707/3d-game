@@ -14,7 +14,7 @@ const Craft = ({ orbit }) => {
 	const lastAddedRef = useRef(null);
 	const { scene } = useThree();
 
-	const dragControlsRef = useDragControls(settingsStorage.activeSubToolId === "MOVE", orbit, partsStorage, partsStorageAPI, lastAddedRef, settingsStorage);
+	const dragControlsRef = useDragControls(true, orbit, partsStorage, partsStorageAPI, lastAddedRef, settingsStorage);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {

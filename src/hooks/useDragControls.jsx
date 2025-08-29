@@ -2,7 +2,7 @@ import { useEffect, useRef } from "react";
 import { useThree } from "@react-three/fiber";
 import { initDragControls } from "../utils/initDragControls";
 
-export function useDragControls(enabled, orbit, partsStorage, partsStorageAPI, lastAddedRef) {
+export function useDragControls(enabled, orbit, partsStorage, partsStorageAPI, lastAddedRef, settingsStorage) {
 	const controlsRef = useRef(null);
 	const { scene, camera, gl } = useThree();
 
@@ -33,7 +33,7 @@ export function useDragControls(enabled, orbit, partsStorage, partsStorageAPI, l
 			}
 		}
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [partsStorage, enabled]);
+	}, [partsStorage, enabled,settingsStorage]);
 
 	return controlsRef;
 }

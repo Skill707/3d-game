@@ -27,7 +27,7 @@ export const onDragStart = (e, orbit, partsStorageAPI) => {
 			parts = [...parts, newPart];
 		} else if (button === 0) {
 			parts = parts.map((p) => {
-				if (p.id === selectedPart.attachedToPart) {
+				if (selectedPart.attachedToPart && p.id === selectedPart.attachedToPart.id) {
 					return { ...p, attachedParts: p.attachedParts.filter((part) => part.id !== selectedPart.id) };
 				}
 				if (p.id === selectedPart.id) {

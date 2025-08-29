@@ -5,6 +5,7 @@ import * as THREE from "three";
 export function ShapedPart({ part, selected }) {
 	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: selected ? "orange" : part.color, side: THREE.DoubleSide }), [selected, part.color]);
 	const segments = part.shapeSegments;
+	const centerHeight = (part.shapeSegments.front.height + part.shapeSegments.back.height)/4
 	return (
 		<>
 			<Segment segment={segments.front} material={material} />
@@ -17,7 +18,7 @@ export function ShapedPart({ part, selected }) {
 						<>
 							<AttachPoint position={segments.front.pos} />
 							<AttachPoint position={segments.back.pos} />
-							<AttachPoint position={[0, -0.5, 0]} />
+							<AttachPoint position={[0, -centerHeight, 0]} />
 						</>
 					)}
 				</>

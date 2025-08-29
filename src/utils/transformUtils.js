@@ -1,16 +1,6 @@
 import { produce } from "immer";
 import * as THREE from "three";
 
-// Вычисляет разницу между двумя позициями
-export function calculatePositionDelta(oldPos, newPos) {
-	return [newPos[0] - oldPos[0], newPos[1] - oldPos[1], newPos[2] - oldPos[2]];
-}
-
-// Вычисляет разницу между двумя поворотами (в радианах)
-export function calculateRotationDelta(oldRot, newRot) {
-	return [newRot[0] - oldRot[0], newRot[1] - oldRot[1], newRot[2] - oldRot[2]];
-}
-
 // Применяет поворот к точке вокруг центра
 export function rotatePointAroundPivot(point, pivot, rotation) {
 	// Создаем векторы из массивов
@@ -96,45 +86,56 @@ export function transformSelectedObject(selectedObject, hit) {
 	const point = hit.point.clone();
 	const attachTo = hit.object.name;
 	const localNormal = hit.normal;
-
 	const hitGroupObject = hit.object.parent;
 	if (!hitGroupObject) return;
-
 	const hitPart = hitGroupObject.userData;
 	if (!hitPart) return;
+	const final = attachPart(hitPart, hitGroupObject, localNormal, point, attachTo);
+	selectedObject.position.copy(final.position);
+	selectedObject.rotation.copy(final.rotation);
+}
 
+function attachPart(hitPart, hitGroupObject, localNormal, point, attachTo = "side") {
 	let finalPosition = point.clone();
-	/*finalPosition.x = finalPosition.x.toPrecision(1);
-                        finalPosition.y = finalPosition.y.toPrecision(1);*/
+	let finalQuat = new THREE.Quaternion();
 
-	finalPosition.z = hitGroupObject.position.z;
-	let finalRotation = new THREE.Euler();
-	const size = [2, 2, 2];
+	// Мировая нормаль в точке касания
+	const normal = localNormal.clone().transformDirection(hitGroupObject.matrixWorld).normalize();
+
+	// Мировая ориентация базовой детали
+	const baseQuat = hitGroupObject.getWorldQuaternion(new THREE.Quaternion());
+	const baseMatrix = new THREE.Matrix4().makeRotationFromQuaternion(baseQuat);
+
+	// Извлекаем «правую» ось детали (локальный X в мире)
+	const baseX = new THREE.Vector3().setFromMatrixColumn(baseMatrix, 0).normalize();
+
+	// Теперь пересобираем: up = normal, right = максимально близкий к baseX
+	let right = new THREE.Vector3().crossVectors(normal, baseX).normalize();
+	if (right.lengthSq() < 1e-6) {
+		// если нормаль почти параллельна X, fallback через Z
+		const baseZ = new THREE.Vector3().setFromMatrixColumn(baseMatrix, 2).normalize();
+		right = new THREE.Vector3().crossVectors(normal, baseZ).normalize();
+	}
+	const forward = new THREE.Vector3().crossVectors(right, normal).normalize();
+
+	// 6. Смещение по высоте (пример для "side")
 	if (attachTo === "side") {
-		// Transform normal from local to world space using part's rotation
-		const partRotation = new THREE.Euler(...hitPart.rot);
-		const rotationMatrix = new THREE.Matrix4().makeRotationFromEuler(partRotation);
-		const normal = localNormal.applyMatrix4(rotationMatrix).normalize();
-
-		// Convert normal to rotation using quaternion
-		// Calculate the rotation from defaultUp to our normal
-		const quaternion = new THREE.Quaternion().setFromUnitVectors(new THREE.Vector3(0, 1, 0), normal);
-		// Convert quaternion to euler angles
-		finalRotation.setFromQuaternion(quaternion);
-
-		const offset = new THREE.Vector3(0, -size[1] / 2, 0).applyQuaternion(quaternion);
+		// Собираем новую матрицу
+		const finalMatrix = new THREE.Matrix4().makeBasis(forward, normal, right.clone().negate());
+		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+		const centerHeight = (hitPart.shapeSegments.front.height + hitPart.shapeSegments.back.height) / 4;
+		const offset = new THREE.Vector3(0, -centerHeight, 0).applyQuaternion(finalQuat);
 		finalPosition.sub(offset);
 	} else if (attachTo === "front" || attachTo === "back") {
-		const offset = attachTo === "front" ? size[2] / 2 : -size[2] / 2;
-		finalPosition.set(hitGroupObject.position.x, hitGroupObject.position.y, point.z + offset);
-		finalRotation.copy(new THREE.Euler(...hitPart.rot));
-	} else {
-		finalPosition.copy(point);
-		finalRotation.copy(new THREE.Euler());
+		const attachFacePos = hitPart.shapeSegments[attachTo].pos;
+		finalPosition.copy(hitGroupObject.position).add(new THREE.Vector3().fromArray(attachFacePos));
+		const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone(), normal.clone());
+		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+		let offset = new THREE.Vector3().fromArray(attachFacePos).applyQuaternion(finalQuat);
+		finalPosition.add(offset);
 	}
-
-	selectedObject.position.copy(finalPosition);
-	selectedObject.rotation.copy(finalRotation);
+	const finalRotation = new THREE.Euler().setFromQuaternion(finalQuat);
+	return { position: finalPosition, rotation: finalRotation };
 }
 
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
@@ -156,12 +157,20 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 				if (hitGroupObject) {
 					const foundPart = draft.parts.find((p) => p.id === hitPart.id);
 					//foundPart.shape.sections[0] = p.shape.sections[0];
-					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id)) selectedPart.attachedToPart = hitPart.id;
-					foundPart.attachedParts.push({
-						id: selectedPart.id,
+					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id)) {
+						foundPart.attachedParts.push({
+							id: selectedPart.id,
+							offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+							name: attachTo,
+						});
+					}
+
+					selectedPart.attachedToPart = {
+						id: hitPart.id,
 						offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
 						name: attachTo,
-					});
+					};
+
 					if (autoResizeParts) {
 						if (attachTo !== "side") {
 							let otherSide = "front";
@@ -181,12 +190,10 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			function saveAttaced(id, attachedParts, objects) {
 				if (!attachedParts || !objects || !id) return;
 				attachedParts.forEach((part) => {
-					const selObj = objects.find((obj) => "dragPart" + id === obj.name);
-					const selObjPos = selObj.position.clone().add(new THREE.Vector3().fromArray(part.offset));
+					const parObj = objects.find((obj) => "dragPart" + part.id === obj.name);
 					const par = draft.parts.find((p) => p.id === part.id);
-					par.pos = [selObjPos.x, selObjPos.y, selObjPos.z];
-					par.rot = [selObj.rotation.x, selObj.rotation.y, selObj.rotation.z];
-
+					par.pos = parObj.position.toArray();
+					par.rot = parObj.rotation.toArray();
 					saveAttaced(par.id, par.attachedParts, objects);
 				});
 			}
@@ -200,8 +207,8 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 
 /**
  * Обновляет трансформации всех деталей в draft.
- * @param {Object3D} Object3D 
- * @param {Array} Vector3 Array 
+ * @param {Object3D} Object3D
+ * @param {Array} Vector3 Array
  * @returns {THREE.Vector3} Vector3
  */
 export function clonePosWithOffset(Object3D, offset) {

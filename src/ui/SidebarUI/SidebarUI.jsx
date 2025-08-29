@@ -63,51 +63,82 @@ export function SidebarUI() {
 	};
 
 	const otherSide = (side) => {
-		if (side === "front") return "back";
-		return "front";
+		if (side === "front") {
+			return "back";
+		} else if (side === "back") {
+			return "front";
+		} else {
+			return null;
+		}
 	};
 
-	const handleChangeSegmentProperties = (part, segmentName, newProperties) => {
-		let parts = null;
-		let tasks = {};
-		if (segmentName === "center") {
-			parts = [
-				{ id: part.id, segmentName: "front" },
-				{ id: part.id, segmentName: "back" },
-			];
-			tasks = { updatePartCenter: { part, newProperties } };
-		} else {
-			parts = [{ id: part.id, segmentName: segmentName }];
-		}
+	const handleChangeSegmentProperties = (segmentName, newProperties) => {
+		const list = [];
+		const tasks = {};
 
-		part.attachedParts.forEach((attachedPart) => {
-			if (attachedPart.name === segmentName) {
-				parts.push({ id: attachedPart.id, segmentName: otherSide(attachedPart.name) });
-			}
-		});
-
-		/*let KEY = ""
-		for (const key in newProperties){
-			KEY = key
-			break
-		}
-
-		if (KEY === "length"){
-			newProperties = {
-				...newProperties,
-				pos: []
-			}
-		}*/
-
-		
-
-		tasks = {
-			...tasks,
-			updatePartsSegmentProps: { parts, newProperties },
-			commit: 0,
+		// === Вспомогательная функция: добавляет обновление сегмента ===
+		const addUpdate = (part, segName, props) => {
+			list.push({ id: part.id, segmentName: segName, newProperties: props });
 		};
 
-		partsStorageAPI(tasks);
+		// === Обработка центрального сегмента ===
+		if (segmentName === "center") {
+			const key = Object.keys(newProperties)[0]; // берём первый изменённый ключ
+
+			if (["length", "zOffset", "xOffset"].includes(key)) {
+				// если меняем геометрию — пересчёт позиций
+				const { length, zOffset, xOffset } = newProperties;
+
+				// основной part
+				addUpdate(selectedPart, "front", { pos: [xOffset, zOffset, length / 2] });
+				addUpdate(selectedPart, "back", { pos: [-xOffset, -zOffset, -length / 2] });
+
+				// связанные части
+				if (settingsStorage.move.autoResizeParts) {
+					selectedPart.attachedParts.forEach((ap) => {
+						const props = {};
+						addUpdate(ap, otherSide(ap.name), props);
+					});
+					if (selectedPart.attachedToPart) {
+						const props = {};
+						addUpdate({ id: selectedPart.attachedToPart.id }, selectedPart.attachedToPart.name, props);
+					}
+				}
+			} else {
+				// если изменяется что-то общее (например, цвет/материал)
+				addUpdate(selectedPart, "front", newProperties);
+				addUpdate(selectedPart, "back", newProperties);
+
+				selectedPart.attachedParts.forEach((ap) => {
+					addUpdate(ap, otherSide(ap.name), newProperties);
+				});
+				if (selectedPart.attachedToPart) {
+					addUpdate({ id: selectedPart.attachedToPart.id }, selectedPart.attachedToPart.name, newProperties);
+				}
+			}
+
+			tasks.updatePartCenter = { part: selectedPart, newProperties };
+		}
+		// === Обработка конкретного сегмента (front/back/др.) ===
+		else {
+			addUpdate(selectedPart, segmentName, newProperties);
+
+			if (settingsStorage.move.autoResizeParts) {
+				selectedPart.attachedParts.forEach((ap) => {
+					if (ap.name === segmentName) {
+						addUpdate(ap, otherSide(ap.name), newProperties);
+					}
+				});
+			}
+		}
+
+		// === Итоговый пакет изменений ===
+		partsStorageAPI({
+			...tasks,
+			updatePartsSegmentProps: list,
+			selectPartbyID: selectedPart.id,
+			commit: 0,
+		});
 	};
 
 	const handlePrevPart = () => {

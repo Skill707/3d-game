@@ -2,34 +2,35 @@ import { atom } from "jotai";
 import { generatePoints, Part } from "../utils/partFactory";
 import { clonePosWithOffset } from "../utils/transformUtils";
 
-const newPart = new Part({ id: 0, name: "fueltank", root: true });
-const basePartsAtom = atom({ parts: [newPart], selectedPart: null, root: true });
+const loadPartsFromStorage = () => {
+	try {
+		const stored = localStorage.getItem("craftParts");
+
+		if (stored && stored != undefined) {
+			let partsStorage = JSON.parse(stored);
+			partsStorage.selectedPart = null;
+			return partsStorage;
+		}
+	} catch (e) {
+		console.error("Error loading parts from localStorage:", e);
+	}
+	return initialState;
+};
 
 function updatePartProperties(part, newProperties) {
 	return { ...part, ...newProperties };
 }
-
 function updateShapeSegment(shapeSegments, newSegment) {
-	let newShapeSegments = structuredClone(shapeSegments);
 	newSegment.points = generatePoints(newSegment);
-	shapeSegments[newSegment.name] = newSegment;
-	return shapeSegments;
+	return { ...shapeSegments, [newSegment.name]: newSegment };
 }
-
-function updateShapeSegments(shapeSegments, newFrontSegment, newBackSegment) {
-	let newShapeSegments = structuredClone(shapeSegments);
-	const updatedFrontSegment = newFrontSegment;
-	const updatedBackSegment = newBackSegment;
-	updatedFrontSegment.points = generatePoints(updatedFrontSegment);
-	updatedBackSegment.points = generatePoints(updatedBackSegment);
-	newShapeSegments["front"] = updatedFrontSegment;
-	newShapeSegments["back"] = updatedBackSegment;
-	return newShapeSegments;
-}
-
 function updateShapeSegmentProperties(segment, newProperties) {
 	return { ...segment, ...newProperties };
 }
+
+const initialState = { parts: [new Part({ id: 0, name: "fueltank", root: true })], selectedPart: null, root: true };
+
+const basePartsAtom = atom(initialState);
 
 export default atom(
 	(get) => get(basePartsAtom),
@@ -56,33 +57,18 @@ export default atom(
 			return updatedPart;
 		}
 
-		/*
-	const list = [].push({
-		id: ,
-		properties: {},
-	});;
-	*/
-		function updateParts(list) {
-			const updatedParts = list;
-			const updatedPartsList = newState.parts.map((part) => {
-				for (let index = 0; index < list.length; index++) {
-					const element = list[index];
-					const updatedPart = updatePartProperties(part, element.properties);
-					updatedParts[index] = updatedPart;
-					if (part.id === element.id) return updatedPart;
-					return part;
-				}
-			});
-			newState.parts = updatedPartsList;
-			return updatedParts;
-		}
-
 		const api = {
 			current: () => {
 				return get(basePartsAtom);
 			},
 			restart: () => {
-				set(basePartsAtom, { parts: [newPart], selectedPart: null, root: true });
+				set(basePartsAtom, initialState);
+			},
+			loadCraft: () => {
+				set(basePartsAtom, loadPartsFromStorage());
+			},
+			saveCraft: () => {
+				localStorage.setItem("craftParts", JSON.stringify(newState));
 			},
 			setObjects: (newObjects) => {
 				objects = newObjects;
@@ -112,21 +98,19 @@ export default atom(
 				const updatedPart = updatePart(id, {
 					shapeSegments: newShapeSegments,
 				});
-				newState.selectedPart = updatedPart;
 				return updatedPart;
 			},
 			updatePartCenter: (props) => {
 				const { part, newProperties } = props;
-				const newSegment = updateShapeSegmentProperties(part.shapeSegments.center, newProperties);
-				const newShapeSegments = part.shapeSegments;
+				let newShapeSegments = structuredClone(part.shapeSegments);
+				const newSegment = updateShapeSegmentProperties(newShapeSegments.center, newProperties);
 				newShapeSegments.center = newSegment;
 				api.updatePartShape(part.id, newShapeSegments);
 			},
-			updatePartsSegmentProps: (props) => {
-				const { parts, newProperties } = props;
-				parts.forEach((part) => {
+			updatePartsSegmentProps: (list) => {
+				list.forEach((part) => {
 					const statePart = newState.parts.find((p) => p.id === part.id);
-					const newSegment = updateShapeSegmentProperties(statePart.shapeSegments[part.segmentName], newProperties);
+					const newSegment = updateShapeSegmentProperties(statePart.shapeSegments[part.segmentName], part.newProperties);
 					const newShapeSegments = updateShapeSegment(statePart.shapeSegments, newSegment);
 					api.updatePartShape(part.id, newShapeSegments);
 				});
@@ -140,7 +124,7 @@ export default atom(
 			if (typeof api[key] === "function") {
 				const ret = api[key](tasks[key]);
 				returnChanges.push(ret);
-				console.log("action", key, "(", tasks[key], ") =>", ret);
+				console.log(key, "(", tasks[key], ") =>", ret);
 			}
 		}
 
@@ -149,6 +133,21 @@ export default atom(
 );
 
 /*
+
+		function updateParts(list) {
+			const updatedParts = list;
+			const updatedPartsList = newState.parts.map((part) => {
+				for (let index = 0; index < list.length; index++) {
+					const element = list[index];
+					const updatedPart = updatePartProperties(part, element.properties);
+					updatedParts[index] = updatedPart;
+					if (part.id === element.id) return updatedPart;
+					return part;
+				}
+			});
+			newState.parts = updatedPartsList;
+			return updatedParts;
+		}
 
 	saveAttached: (part) => {
 				if ((part && part.attachedParts) || !objects) return api;

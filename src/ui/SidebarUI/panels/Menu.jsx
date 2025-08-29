@@ -32,7 +32,13 @@ export function Menu({ onClose, partsStorageAPI }) {
 							fullWidth
 							className="menu-button"
 							onClick={() => {
-								partsStorageAPI({ restart: 0 });
+								if (label === "NEW CRAFT") {
+									partsStorageAPI({ restart: 0 });
+								} else if (label === "LOAD CRAFT") {
+									partsStorageAPI({ loadCraft: 0 });
+								} else if (label === "SAVE CRAFT") {
+									partsStorageAPI({ saveCraft: 0 });
+								}
 							}}
 						>
 							{label}

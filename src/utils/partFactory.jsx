@@ -84,7 +84,7 @@ export class Part {
 		this.color = parameters.color || "gray";
 		this.attachedParts = parameters.attachedParts || [];
 		this.attachedToPart = parameters.attachedToPart || null;
-		this.shapeSegments = shapeRegistry[parameters.name] || null;
+		this.shapeSegments = parameters.shapeSegments || shapeRegistry[parameters.name] || null;
 		this.drag = false;
 		this.objectName = parameters.objectName || "dragPart" + parameters.id;
 		this.root = false;
@@ -102,7 +102,15 @@ export const CreatePart = ({ part, selected = false }) => {
 				lockZ={false} // Lock the rotation on the z axis (default=false)
 			>
 				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-					{part.objectName + "|" + " [" + part.attachedParts.map((part) => part.id) + "]" + " (" + part.attachedToPart + ")\n"}
+					{part.objectName +
+						"|" +
+						" [" +
+						part.attachedParts.map((ap) => ap.name + ap.id) +
+						"]" +
+						" (" +
+						(part.attachedToPart?.name + part.attachedToPart?.id) +
+						")\n" +
+						part.rot.map((r) => (r * 57.2958).toFixed(2))}
 				</Text>
 			</Billboard>
 		</group>

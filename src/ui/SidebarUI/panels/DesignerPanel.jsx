@@ -128,10 +128,17 @@ export function DesignerPanel({
 				corner3: newValue,
 				corner4: newValue,
 			};
+		} else if (field === "length" || field === "zOffset" || field === "xOffset") {
+			newProps = {
+				length: segments.center.length,
+				zOffset: segments.center.zOffset,
+				xOffset: segments.center.xOffset,
+				[field]: newValue,
+			};
 		} else {
 			newProps = { [field]: newValue };
 		}
-		handleChangeSegmentProperties(selectedPart, seclectedSection, newProps);
+		handleChangeSegmentProperties(seclectedSection, newProps);
 	};
 
 	const handleTranslateChange = (field) => (newValue) => {
@@ -141,45 +148,6 @@ export function DesignerPanel({
 	// setCurrentShapeIndex((prev) => (prev - 1 + shapeTypes.length) % shapeTypes.length)
 	//const currentShapeType = shapeTypes[currentShapeIndex];
 	const handleSeclectSection = (name) => seclectSection(name);
-
-	/*
-	const handleConnectionToggle = (id) => {
-		setToolSettings((prev) => ({
-			...prev,
-			connections: {
-				...prev.connections,
-				attachPoints: prev.connections.attachPoints.map((p) => (p.id === id ? { ...p, enabled: !p.enabled } : p)),
-			},
-		}));
-	};
-
-	const handleConnectionDelete = (id) => {
-		setToolSettings((prev) => ({
-			...prev,
-			connections: {
-				...prev.connections,
-				attachPoints: prev.connections.attachPoints.filter((p) => p.id !== id),
-			},
-		}));
-	};
-
-	const handleAddConnection = () => {
-		const newConnection = {
-			id: Date.now(),
-			type: "rotate",
-			name: "New Connection",
-			connectedTo: null,
-			enabled: true,
-		};
-		setToolSettings((prev) => ({
-			...prev,
-			connections: {
-				...prev.connections,
-				attachPoints: [...prev.connections.attachPoints, newConnection],
-			},
-		}));
-	};
-*/
 
 	const renderContent = () => {
 		if (!selectedPart) {
@@ -303,7 +271,7 @@ export function DesignerPanel({
 					<>
 						<NumericStepper label="Grid Size" value={settings.gridSize} onChange={handleChange("gridSize")} step={0.05} min={0} precision={2} />
 						<SelectionChanger
-							label="Change part selection"
+							label={selectedPart.objectName + seclectedSection}
 							handlePrevPart={handlePrevPart}
 							handleSeclectSection={handleSeclectSection}
 							handleNextPart={handleNextPart}

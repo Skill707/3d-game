@@ -1,22 +1,4 @@
 import { atom } from "jotai";
-import { Part } from "../utils/partFactory";
-
-// Функция для загрузки деталей из localStorage
-const loadPartsFromStorage = () => {
-	try {
-		const stored = localStorage.getItem("craftParts");
-
-		if (stored && stored != undefined) {
-			let partsStorage = JSON.parse(stored);
-			partsStorage.selectedPart = null;
-			return partsStorage;
-		}
-	} catch (e) {
-		console.error("Error loading parts from localStorage:", e);
-	}
-	const newPart = new Part({ id: 0, name: "fueltank", root: true });
-	return { parts: [newPart], selectedPart: null };
-};
 
 const baseSettingsAtom = atom({
 	activeSubToolId: "MOVE",
