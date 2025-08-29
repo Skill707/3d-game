@@ -17,50 +17,36 @@ const loadPartsFromStorage = () => {
 	return initialState;
 };
 
-function updatePartProperties(part, newProperties) {
-	return { ...part, ...newProperties };
-}
 function updateShapeSegment(shapeSegments, newSegment) {
 	newSegment.points = generatePoints(newSegment);
 	return { ...shapeSegments, [newSegment.name]: newSegment };
 }
 function updateShapeSegmentProperties(segment, newProperties) {
-	return { ...segment, ...newProperties };
+	return { ...segment, ...newProperties, name: segment.name, pos: segment.pos, rot: segment.rot, closed: segment.closed };
 }
 
-const initialState = { parts: [new Part({ id: 0, name: "fueltank", root: true })], selectedPart: null, root: true };
+const initialState = { parts: [new Part({ id: 0, name: "fueltank", root: true })], selectedPart: null };
 
 const basePartsAtom = atom(initialState);
 
 export default atom(
 	(get) => get(basePartsAtom),
-	(get, set, tasks) => {
+	(get, set, update) => {
 		let newState = structuredClone(get(basePartsAtom));
-		let returnChanges = [];
+		let updatedParts = [];
 		let objects = null;
 
-		if (typeof tasks === "function") {
-			//console.log("action is function");
-			const newValue = tasks(newState);
-			set(basePartsAtom, newValue);
-			return "function";
-		}
+		/**
+		 * API для управления частями.
+		 * @typedef {Object} PartsAPI
+		 * @property {(type: string|object) => Part} addPart Добавляет новую деталь, делает её выбранной и возвращает её.
+		 * @property {(objectName: string) => Part|null} selectObjectName Выбирает часть по имени объекта.
+		 * @property {(id: number) => Part|null} selectPartID Выбирает часть по ID.
+		 * @property {() => void} commit Применяет все изменения в состояние.
+		 */
 
-		function updatePart(id, properties) {
-			let updatedPart = null;
-			const updatedPartsList = newState.parts.map((part) => {
-				updatedPart = updatePartProperties(part, properties);
-				if (part.id === id) return updatedPart;
-				return part;
-			});
-			newState.parts = updatedPartsList;
-			return updatedPart;
-		}
-
+		/** @type {PartsAPI} */
 		const api = {
-			current: () => {
-				return get(basePartsAtom);
-			},
 			restart: () => {
 				set(basePartsAtom, initialState);
 			},
@@ -73,62 +59,97 @@ export default atom(
 			setObjects: (newObjects) => {
 				objects = newObjects;
 			},
-			addPart: (type) => {
+			addPart: (prop) => {
 				const parts = newState.parts;
 				const newID = Math.max(0, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
-				const newPart = new Part({
-					id: newID,
-					name: type,
-				});
+				let parameters = {};
+				if (typeof prop === "string") {
+					parameters = {
+						id: newID,
+						name: prop,
+					};
+				} else if (typeof prop === "object") {
+					parameters = { ...prop, id: newID };
+				} else return null;
+				const newPart = new Part(parameters);
 				parts.push(newPart);
+				updatedParts.push(newPart);
 				newState.selectedPart = newPart;
 				return newPart;
 			},
-			selectPart: (objectName) => {
+
+			selectObjectName: (objectName) => {
 				const selectedPart = newState.parts.find((p) => p.objectName === objectName) || null;
 				newState.selectedPart = selectedPart;
 				return selectedPart;
 			},
-			selectPartbyID: (id) => {
+			selectPartID: (id) => {
 				const selectedPart = newState.parts.find((p) => p.id === id) || null;
 				newState.selectedPart = selectedPart;
 				return selectedPart;
 			},
-			updatePartShape: (id, newShapeSegments) => {
-				const updatedPart = updatePart(id, {
-					shapeSegments: newShapeSegments,
+			updPartProperties: (id, properties) => {
+				let updatedPart = null;
+				newState.parts = newState.parts.map((part) => {
+					if (part.id === id) {
+						updatedPart = { ...part, ...properties };
+						return updatedPart;
+					}
+					return part;
 				});
+				updatedParts.push(updatedPart);
 				return updatedPart;
 			},
-			updatePartCenter: (props) => {
-				const { part, newProperties } = props;
+			addAttachedPart: (id, ap) => {
+				const statePart = newState.parts.find((p) => p.id === id);
+				const attachedParts = [...statePart.attachedParts, ap];
+				api.updPartProperties(id, {
+					attachedParts: attachedParts,
+				});
+				return attachedParts;
+			},
+			transformation: (id, properties) => {
+				let updatedPart = null;
+				updatedParts = 999;
+				return updatedPart;
+			},
+			updShapeCenter: (part, newProperties) => {
 				let newShapeSegments = structuredClone(part.shapeSegments);
 				const newSegment = updateShapeSegmentProperties(newShapeSegments.center, newProperties);
 				newShapeSegments.center = newSegment;
-				api.updatePartShape(part.id, newShapeSegments);
+				api.updPartProperties(part.id, {
+					shapeSegments: newShapeSegments,
+				});
 			},
-			updatePartsSegmentProps: (list) => {
+			updPartsSegmentNameProps: (list) => {
 				list.forEach((part) => {
 					const statePart = newState.parts.find((p) => p.id === part.id);
 					const newSegment = updateShapeSegmentProperties(statePart.shapeSegments[part.segmentName], part.newProperties);
 					const newShapeSegments = updateShapeSegment(statePart.shapeSegments, newSegment);
-					api.updatePartShape(part.id, newShapeSegments);
+					api.updPartProperties(part.id, {
+						shapeSegments: newShapeSegments,
+					});
 				});
 			},
-			commit: () => {
-				set(basePartsAtom, newState);
+			todo: (tasks) => {
+				console.log("todo:");
+				for (const key in tasks) {
+					const value = tasks[key];
+					const ret = api[key](value);
+					console.log(key, "(", value, ")=>", ret);
+				}
+			},
+			commit: (state) => {
+				if (state) {
+					set(basePartsAtom, state);
+				} else {
+					set(basePartsAtom, newState);
+				}
 			},
 		};
 
-		for (const key in tasks) {
-			if (typeof api[key] === "function") {
-				const ret = api[key](tasks[key]);
-				returnChanges.push(ret);
-				console.log(key, "(", tasks[key], ") =>", ret);
-			}
-		}
-
-		return returnChanges;
+		update(api, get(basePartsAtom), set);
+		return updatedParts;
 	}
 );
 
@@ -164,7 +185,7 @@ export default atom(
 							pos: [newPos.x, newPos.y, newPos.z],
 							rot: [selObj.rotation.x, selObj.rotation.y, selObj.rotation.z],
 						});
-						returnChanges.push(updatedPart);
+						updatedParts.push(updatedPart);
 						//recursive(updatedPart, objects);
 					});
 				};

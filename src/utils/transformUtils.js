@@ -82,7 +82,7 @@ export function matrix4ToEuler(input) {
 	return null;
 }
 
-export function transformSelectedObject(selectedObject, hit) {
+export function transformSelectedObject(selectedObject, hit, attachToSurfaces, autoRotateParts) {
 	const point = hit.point.clone();
 	const attachTo = hit.object.name;
 	const localNormal = hit.normal;
@@ -90,9 +90,11 @@ export function transformSelectedObject(selectedObject, hit) {
 	if (!hitGroupObject) return;
 	const hitPart = hitGroupObject.userData;
 	if (!hitPart) return;
-	const final = attachPart(hitPart, hitGroupObject, localNormal, point, attachTo);
-	selectedObject.position.copy(final.position);
-	selectedObject.rotation.copy(final.rotation);
+	if (attachToSurfaces) {
+		const final = attachPart(hitPart, hitGroupObject, localNormal, point, attachTo);
+		selectedObject.position.copy(final.position);
+		if (autoRotateParts) selectedObject.rotation.copy(final.rotation);
+	}
 }
 
 function attachPart(hitPart, hitGroupObject, localNormal, point, attachTo = "side") {
@@ -138,9 +140,62 @@ function attachPart(hitPart, hitGroupObject, localNormal, point, attachTo = "sid
 	return { position: finalPosition, rotation: finalRotation };
 }
 
+const otherSide = (side) => {
+	if (side === "front") {
+		return "back";
+	} else if (side === "back") {
+		return "front";
+	} else {
+		return null;
+	}
+};
+
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
+	partsStorageAPI((api, prev) => {
+		if (objects) {
+			api.setObjects(objects);
+		}
+
+		const selectedPartID = object.userData.id;
+
+		let selectedPartPartProperties = {
+			pos: [object.position.x, object.position.y, object.position.z],
+			rot: [object.rotation.x, object.rotation.y, object.rotation.z],
+			drag: false,
+		};
+
+		if (lastHit) {
+			const attachTo = lastHit.object.name;
+			const hitGroupObject = lastHit.object.parent;
+			const hitPart = hitGroupObject.userData;
+			if (!hitPart.attachedParts.find((part) => part.id === selectedPartID)) {
+				api.addAttachedPart(hitPart.id, {
+					id: selectedPartID,
+					offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+					name: attachTo,
+				});
+				selectedPartPartProperties.attachedToPart = {
+					id: hitPart.id,
+					offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+					name: attachTo,
+				};
+				if (autoResizeParts) {
+					const hitSegment = hitPart.shapeSegments[attachTo];
+					api.updPartsSegmentNameProps([{ id: selectedPartID, segmentName: otherSide(attachTo), newProperties: { ...hitSegment } }]);
+				}
+			}
+		}
+
+		api.updPartProperties(selectedPartID, selectedPartPartProperties);
+
+		api.selectPartID(selectedPartID);
+		api.commit();
+	});
+};
+
+const saveTransformationold = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
 	partsStorageAPI(
-		produce((draft) => {
+		produce((api, draft) => {
 			const selectedPart = draft.parts.find((p) => p.objectName === object.name);
 			selectedPart.drag = false;
 			// можно ещё сохранить финальную pos/rot сюда

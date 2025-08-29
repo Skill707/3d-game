@@ -11,7 +11,6 @@ import { ViewOptionsPanel } from "./panels/ViewOptionsPanel";
 import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
 import { settingsAtom } from "../../state/atoms";
-import { produce } from "immer";
 import { shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
@@ -26,11 +25,10 @@ export function SidebarUI() {
 	const activeSubToolId = settingsStorage.activeSubToolId;
 
 	const setActiveSubToolId = (id) => {
-		setSettingsStorage(
-			produce((draft) => {
-				draft.activeSubToolId = id;
-			})
-		);
+		setSettingsStorage({
+			...settingsStorage,
+			activeSubToolId: id,
+		});
 	};
 
 	const handlePanelToggle = (panelId) => {
@@ -48,18 +46,12 @@ export function SidebarUI() {
 			yAngle: 1,
 			zAngle: 2,
 		};
-		partsStorageAPI(
-			produce((draft) => {
-				const part = draft.parts.find((p) => p.id === draft.selectedPart.id);
-
-				if (pos[field] !== undefined) {
-					part.pos[pos[field]] = value;
-				} else if (rot[field] !== undefined) {
-					part.rot[rot[field]] = (value * Math.PI) / 180;
-				}
-				draft.selectedPart = part;
-			})
-		);
+		/*let props = {};
+		if (pos[field] !== undefined) {
+			props.pos[pos[field]] = value;
+		} else if (rot[field] !== undefined) {
+			props.rot[rot[field]] = (value * Math.PI) / 180;
+		}*/
 	};
 
 	const otherSide = (side) => {
@@ -77,8 +69,8 @@ export function SidebarUI() {
 		const tasks = {};
 
 		// === Вспомогательная функция: добавляет обновление сегмента ===
-		const addUpdate = (part, segName, props) => {
-			list.push({ id: part.id, segmentName: segName, newProperties: props });
+		const addUpdate = (id, segmentName, newProperties) => {
+			list.push({ id, segmentName, newProperties });
 		};
 
 		// === Обработка центрального сегмента ===
@@ -90,18 +82,18 @@ export function SidebarUI() {
 				const { length, zOffset, xOffset } = newProperties;
 
 				// основной part
-				addUpdate(selectedPart, "front", { pos: [xOffset, zOffset, length / 2] });
-				addUpdate(selectedPart, "back", { pos: [-xOffset, -zOffset, -length / 2] });
+				addUpdate(selectedPart.id, "front", { pos: [xOffset, zOffset, length / 2] });
+				addUpdate(selectedPart.id, "back", { pos: [-xOffset, -zOffset, -length / 2] });
 
 				// связанные части
 				if (settingsStorage.move.autoResizeParts) {
 					selectedPart.attachedParts.forEach((ap) => {
 						const props = {};
-						addUpdate(ap, otherSide(ap.name), props);
+						addUpdate(ap.id, otherSide(ap.name), props);
 					});
 					if (selectedPart.attachedToPart) {
 						const props = {};
-						addUpdate({ id: selectedPart.attachedToPart.id }, selectedPart.attachedToPart.name, props);
+						addUpdate(selectedPart.attachedToPart.id, selectedPart.attachedToPart.name, props);
 					}
 				}
 			} else {
@@ -113,57 +105,59 @@ export function SidebarUI() {
 					addUpdate(ap, otherSide(ap.name), newProperties);
 				});
 				if (selectedPart.attachedToPart) {
-					addUpdate({ id: selectedPart.attachedToPart.id }, selectedPart.attachedToPart.name, newProperties);
+					addUpdate(selectedPart.attachedToPart.id, selectedPart.attachedToPart.name, newProperties);
 				}
 			}
 
-			tasks.updatePartCenter = { part: selectedPart, newProperties };
+			tasks.updShapeCenter = { part: selectedPart, newProperties };
 		}
 		// === Обработка конкретного сегмента (front/back/др.) ===
 		else {
-			addUpdate(selectedPart, segmentName, newProperties);
+			addUpdate(selectedPart.id, segmentName, newProperties);
 
 			if (settingsStorage.move.autoResizeParts) {
 				selectedPart.attachedParts.forEach((ap) => {
 					if (ap.name === segmentName) {
-						addUpdate(ap, otherSide(ap.name), newProperties);
+						addUpdate(ap.id, otherSide(ap.name), newProperties);
 					}
 				});
 			}
 		}
 
 		// === Итоговый пакет изменений ===
-		partsStorageAPI({
-			...tasks,
-			updatePartsSegmentProps: list,
-			selectPartbyID: selectedPart.id,
-			commit: 0,
+		partsStorageAPI((api) => {
+			api.todo({
+				...tasks,
+				updPartsSegmentNameProps: list,
+				selectPartID: selectedPart.id,
+				commit: 0,
+			});
 		});
 	};
 
 	const handlePrevPart = () => {
 		selectedPart.attachedParts.forEach((attachedPart) => {
 			if (attachedPart.name === "back") {
-				partsStorageAPI({
-					selectPartbyID: attachedPart.id,
-					commit: 0,
+				partsStorageAPI((api) => {
+					api.selectPartID(attachedPart.id);
+					api.commit();
 				});
 				return;
 			}
 		});
 		if (selectedPart.attachedToPart) {
-			partsStorageAPI({
-				selectPartbyID: selectedPart.attachedToPart,
-				commit: 0,
+			partsStorageAPI((api) => {
+				api.selectPartID(selectedPart.attachedToPart);
+				api.commit();
 			});
 		}
 	};
 	const handleNextPart = () => {
 		selectedPart.attachedParts.forEach((attachedPart) => {
 			if (attachedPart.name === "front") {
-				partsStorageAPI({
-					selectPartbyID: attachedPart.id,
-					commit: 0,
+				partsStorageAPI((api) => {
+					api.selectPartID(attachedPart.id);
+					api.commit();
 				});
 			}
 		});

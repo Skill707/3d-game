@@ -18,14 +18,14 @@ const Craft = ({ orbit }) => {
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
-			const changes = partsStorageAPI({
-				addPart: settingsStorage.addParts.selectedPartType,
-				commit: true,
+			const changes = partsStorageAPI((api) => {
+				api.addPart(settingsStorage.addParts.selectedPartType);
+				api.commit();
 			});
 			console.log(changes);
-
 			lastAddedRef.current = "dragPart" + changes[0].id;
 		}
+
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [settingsStorage.addParts]);
 
@@ -44,8 +44,6 @@ const Craft = ({ orbit }) => {
 	const handleEndTransform = () => {
 		if (transformObject) {
 			saveTransformation(partsStorageAPI, transformObject, objects);
-			//const changes = partsAPI.start().saveTransformation(transformObject).saveAttached(transformObject.userData, objects).commit();
-			//console.log("changes", changes);
 		}
 	};
 	return (
