@@ -1,6 +1,6 @@
-import { Suspense, useEffect, useRef } from "react";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader } from "@react-three/drei";
+import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader, KeyboardControls } from "@react-three/drei";
 
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import Craft from "./components/Craft";
@@ -53,12 +53,35 @@ export function AircraftEditorScene() {
 		lockOrientation();
 	}, []);
 
+	const Controls = {
+		nextTool: "nextTool",
+		paintTool: "paintTool",
+		connections: "connections",
+		addPart: "addPart",
+		properties: "properties",
+	};
+
+	const map = useMemo(
+		() => [
+			{ name: Controls.nextTool, keys: ["KeyM"] },
+			{ name: Controls.paintTool, keys: ["KeyP"] },
+			{ name: Controls.connections, keys: ["KeyC"] },
+			{ name: Controls.addPart, keys: ["KeyA"] },
+			{ name: Controls.properties, keys: ["KeyB"] },
+		],
+		[]
+	);
+
 	return (
-		<>
+		<KeyboardControls map={map}>
 			<OrientationMessage />
 			<AircraftEditorUI />
 			<Canvas ref={canvasRef} shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
-				<Suspense fallback={()=>{console.log("fallback")}}>
+				<Suspense
+					fallback={() => {
+						console.log("fallback");
+					}}
+				>
 					<ambientLight intensity={0.7} />
 					<directionalLight position={[10, 10, 5]} intensity={1.5} castShadow shadow-mapSize-width={2048} shadow-mapSize-height={2048} />
 					<Grid
@@ -83,6 +106,6 @@ export function AircraftEditorScene() {
 			</Canvas>
 			<Stats className="stats" />
 			<Loader />
-		</>
+		</KeyboardControls>
 	);
 }

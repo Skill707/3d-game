@@ -1,7 +1,6 @@
 //import { DragControls } from "three/examples/jsm/Addons.js";
 import { DragControls } from "../utils/MyDragControls.js";
-import { saveTransformation, transformSelectedObject } from "./transformUtils.js";
-import { moveAttached } from "./attachmentUtils.js";
+import { moveAttached, saveTransformation, transformSelectedObject } from "./transformUtils.js";
 
 export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsStorage) => {
 	const [camera, domElement, orbit] = threeStuff;

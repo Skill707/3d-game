@@ -14,7 +14,14 @@ const Craft = ({ orbit }) => {
 	const lastAddedRef = useRef(null);
 	const { scene } = useThree();
 
-	const dragControlsRef = useDragControls(true, orbit, partsStorage, partsStorageAPI, lastAddedRef, settingsStorage);
+	const dragControlsRef = useDragControls(
+		settingsStorage.activeSubToolId === "MOVE" || settingsStorage.activeSubToolId === "RESHAPE",
+		orbit,
+		partsStorage,
+		partsStorageAPI,
+		lastAddedRef,
+		settingsStorage
+	);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
@@ -46,6 +53,9 @@ const Craft = ({ orbit }) => {
 			saveTransformation(partsStorageAPI, transformObject, objects);
 		}
 	};
+	const rad2deg = (value) => value * (180 / Math.PI);
+	const deg2rad = (value) => (value * Math.PI) / 180;
+
 	return (
 		<>
 			{partsStorage.parts.map((part) => (
@@ -59,8 +69,11 @@ const Craft = ({ orbit }) => {
 					onObjectChange={(e) => {
 						handleEndTransform();
 					}}
+					onChange={(e) => {
+						//console.log("enter", e);
+					}}
 					mode={transformControlsMode}
-					rotationSnap={settingsStorage.rotate.angleStep / 57.2958}
+					rotationSnap={deg2rad(settingsStorage.rotate.angleStep)}
 					translationSnap={settingsStorage.translate.gridSize}
 					space={
 						transformControlsMode === "translate"

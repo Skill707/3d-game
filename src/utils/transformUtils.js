@@ -1,4 +1,3 @@
-import { produce } from "immer";
 import * as THREE from "three";
 
 // Применяет поворот к точке вокруг центра
@@ -150,13 +149,39 @@ const otherSide = (side) => {
 	}
 };
 
+export function moveAttached(id, attachedParts, objects) {
+	if (!attachedParts) return;
+
+	attachedParts.forEach((part) => {
+		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
+		const obj = objects.find((obj) => "dragPart" + part.id === obj.name);
+		if (!selObj || !obj) return;
+
+		if (part.offsetMatrix) {
+			const offsetMatrix = new THREE.Matrix4().fromArray(part.offsetMatrix);
+
+			// obj.matrixWorld = selObj.matrixWorld * offsetMatrix
+			const newMatrix = new THREE.Matrix4().copy(selObj.matrixWorld).multiply(offsetMatrix);
+
+			// Деконструируем матрицу в position/quaternion/scale
+			newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
+		}
+
+		const found = obj.userData;
+		if (found) {
+			moveAttached(found.id, found.attachedParts, objects);
+		}
+	});
+}
+
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
 	partsStorageAPI((api, prev) => {
 		if (objects) {
 			api.setObjects(objects);
 		}
 
-		const selectedPartID = object.userData.id;
+		const selectedPart = object.userData;
+		const selectedPartID = selectedPart.id;
 
 		let selectedPartPartProperties = {
 			pos: [object.position.x, object.position.y, object.position.z],
@@ -169,21 +194,50 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			const hitGroupObject = lastHit.object.parent;
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPartID)) {
+				const offsetMatrix = new THREE.Matrix4().copy(hitGroupObject.matrixWorld).invert().multiply(object.matrixWorld);
 				api.addAttachedPart(hitPart.id, {
 					id: selectedPartID,
-					offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+					offsetMatrix: offsetMatrix.toArray(),
 					name: attachTo,
 				});
 				selectedPartPartProperties.attachedToPart = {
 					id: hitPart.id,
-					offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
+					offsetMatrix: offsetMatrix.toArray(),
 					name: attachTo,
 				};
-				if (autoResizeParts) {
+				if (autoResizeParts && attachTo !== "side") {
 					const hitSegment = hitPart.shapeSegments[attachTo];
-					api.updPartsSegmentNameProps([{ id: selectedPartID, segmentName: otherSide(attachTo), newProperties: { ...hitSegment } }]);
+					const selectedSegment = selectedPart.shapeSegments[otherSide(attachTo)];
+					api.updPartsSegmentNameProps([
+						{
+							id: selectedPartID,
+							segmentName: otherSide(attachTo),
+							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant },
+						},
+					]);
 				}
 			}
+		}
+
+		moveAttached(selectedPartID, selectedPart.attachedParts, objects);
+
+		function saveAttaced(attachedParts) {
+			if (!attachedParts) return;
+			attachedParts.forEach((ap) => {
+				const attachedPartObj = objects.find((obj) => "dragPart" + ap.id === obj.name);
+
+				api.updPartProperties(ap.id, {
+					pos: attachedPartObj.position.toArray(),
+					rot: attachedPartObj.rotation.toArray(),
+				});
+
+				const attachedPart = attachedPartObj.userData;
+				saveAttaced(attachedPart.id, attachedPart.attachedParts);
+			});
+		}
+
+		if (objects) {
+			saveAttaced(selectedPart.attachedParts);
 		}
 
 		api.updPartProperties(selectedPartID, selectedPartPartProperties);
@@ -192,83 +246,6 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 		api.commit();
 	});
 };
-
-const saveTransformationold = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
-	partsStorageAPI(
-		produce((api, draft) => {
-			const selectedPart = draft.parts.find((p) => p.objectName === object.name);
-			selectedPart.drag = false;
-			// можно ещё сохранить финальную pos/rot сюда
-			selectedPart.pos = [object.position.x, object.position.y, object.position.z];
-			selectedPart.rot = [object.rotation.x, object.rotation.y, object.rotation.z];
-			draft.selectedPart = null; // кастыль
-			draft.selectedPart = selectedPart;
-
-			if (lastHit) {
-				const attachTo = lastHit.object.name;
-				const hitGroupObject = lastHit.object.parent;
-				const hitPart = hitGroupObject.userData;
-
-				if (hitGroupObject) {
-					const foundPart = draft.parts.find((p) => p.id === hitPart.id);
-					//foundPart.shape.sections[0] = p.shape.sections[0];
-					if (!foundPart.attachedParts.find((part) => part.id === selectedPart.id)) {
-						foundPart.attachedParts.push({
-							id: selectedPart.id,
-							offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
-							name: attachTo,
-						});
-					}
-
-					selectedPart.attachedToPart = {
-						id: hitPart.id,
-						offset: new THREE.Vector3().subVectors(object.position, hitGroupObject.position).toArray(),
-						name: attachTo,
-					};
-
-					if (autoResizeParts) {
-						if (attachTo !== "side") {
-							let otherSide = "front";
-							if (attachTo === "front") otherSide = "back";
-							const foundShape = foundPart.shapeSegments[attachTo];
-							const selectedShape = selectedPart.shapeSegments[otherSide];
-
-							selectedPart.shapeSegments[otherSide] = {
-								...foundShape,
-								name: selectedShape.name,
-								pos: selectedShape.pos,
-							};
-						}
-					}
-				}
-			}
-			function saveAttaced(id, attachedParts, objects) {
-				if (!attachedParts || !objects || !id) return;
-				attachedParts.forEach((part) => {
-					const parObj = objects.find((obj) => "dragPart" + part.id === obj.name);
-					const par = draft.parts.find((p) => p.id === part.id);
-					par.pos = parObj.position.toArray();
-					par.rot = parObj.rotation.toArray();
-					saveAttaced(par.id, par.attachedParts, objects);
-				});
-			}
-
-			if (objects) {
-				saveAttaced(selectedPart.id, selectedPart.attachedParts, objects);
-			}
-		})
-	);
-};
-
-/**
- * Обновляет трансформации всех деталей в draft.
- * @param {Object3D} Object3D
- * @param {Array} Vector3 Array
- * @returns {THREE.Vector3} Vector3
- */
-export function clonePosWithOffset(Object3D, offset) {
-	return Object3D.position.clone().add(new THREE.Vector3().fromArray(offset));
-}
 
 /*
 , handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 

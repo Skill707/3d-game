@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Sidebar } from "./Sidebar";
 import { Menu } from "./panels/Menu";
 import { DesignerPanel } from "./panels/DesignerPanel";
@@ -14,6 +14,7 @@ import { settingsAtom } from "../../state/atoms";
 import { shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
+import { useKeyboardControls } from "@react-three/drei";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -22,7 +23,7 @@ export function SidebarUI() {
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 
 	const selectedPart = partsStorage.selectedPart;
-	const activeSubToolId = settingsStorage.activeSubToolId;
+	let activeSubToolId = settingsStorage.activeSubToolId;
 
 	const setActiveSubToolId = (id) => {
 		setSettingsStorage({
@@ -31,27 +32,72 @@ export function SidebarUI() {
 		});
 	};
 
+	const pressedKey = useKeyboardControls((state) => state);
+	const lastPressed = useRef(Object.fromEntries(Object.keys(pressedKey).map((k) => [k, false])));
+	useEffect(() => {
+		const actions = {
+			nextTool: () => {
+				const toolOrder = ["MOVE", "TRANSLATE", "ROTATE", "RESHAPE"];
+				setSettingsStorage((prev) => {
+					const currentTool = prev.activeSubToolId;
+					const currentIndex = toolOrder.indexOf(currentTool);
+					const newIndex = (currentIndex + 1) % toolOrder.length;
+					return { ...prev, activeSubToolId: toolOrder[newIndex] };
+				});
+			},
+			paintTool: () => {
+				setSettingsStorage((prev) => {
+					return { ...prev, activeSubToolId: "PAINT" };
+				});
+				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
+			},
+			connections: () => {
+				setSettingsStorage((prev) => {
+					return { ...prev, activeSubToolId: "CONNECTIONS" };
+				});
+				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
+			},
+			addPart: () => {
+				setActivePanel("ADD_PARTS");
+			},
+			searchParts: () => {
+				setActivePanel("SEARCH");
+			},
+			properties: () => {
+				setActivePanel("PART_PROPERTIES");
+			},
+		};
+
+		for (const [name, value] of Object.entries(pressedKey)) {
+			const wasPressed = lastPressed.current[name];
+			if (!wasPressed && value && actions[name]) actions[name]();
+			lastPressed.current[name] = value;
+		}
+	}, [pressedKey, setSettingsStorage]);
+
 	const handlePanelToggle = (panelId) => {
 		setActivePanel((current) => (current === panelId ? null : panelId));
+		if (panelId !== "DESIGNER") {
+			setSettingsStorage((prev) => {
+				return { ...prev, activeSubToolId: "MOVE" };
+			});
+		}
 	};
 
-	const handleMovePart = (field, value) => {
-		const pos = {
-			xPos: 0,
-			yPos: 1,
-			zPos: 2,
-		};
-		const rot = {
-			xAngle: 0,
-			yAngle: 1,
-			zAngle: 2,
-		};
-		/*let props = {};
-		if (pos[field] !== undefined) {
-			props.pos[pos[field]] = value;
-		} else if (rot[field] !== undefined) {
-			props.rot[rot[field]] = (value * Math.PI) / 180;
-		}*/
+	const handleMovePart = (posDelta) => {
+		partsStorageAPI((api) => {
+			api.translateParts([{ id: selectedPart.id, posDelta }]);
+			api.selectPartID(selectedPart.id);
+			api.commit();
+		});
+	};
+
+	const handleRotatePart = (rotDelta) => {
+		partsStorageAPI((api) => {
+			api.rotateParts([{ id: selectedPart.id, rotDelta }]);
+			api.selectPartID(selectedPart.id);
+			api.commit();
+		});
 	};
 
 	const otherSide = (side) => {
@@ -65,73 +111,72 @@ export function SidebarUI() {
 	};
 
 	const handleChangeSegmentProperties = (segmentName, newProperties) => {
+		const list = [{ id: selectedPart.id, segmentName, newProperties }];
+
+		if (settingsStorage.move.autoResizeParts) {
+			selectedPart.attachedParts.forEach((ap) => {
+				if (ap.name === segmentName) list.push({ id: ap.id, segmentName: otherSide(ap.name), newProperties });
+			});
+			if (selectedPart.attachedToPart && segmentName === otherSide(selectedPart.attachedToPart.name)) {
+				list.push({ id: selectedPart.attachedToPart.id, segmentName: selectedPart.attachedToPart.name, newProperties });
+			}
+		}
+
+		partsStorageAPI((api) => {
+			api.updPartsSegmentNameProps(list);
+			api.selectPartID(selectedPart.id);
+			api.commit();
+		});
+	};
+
+	const handleChangeCenterProperties = (newProperties) => {
 		const list = [];
-		const tasks = {};
+		const translateList = [];
 
 		// === Вспомогательная функция: добавляет обновление сегмента ===
 		const addUpdate = (id, segmentName, newProperties) => {
 			list.push({ id, segmentName, newProperties });
 		};
 
-		// === Обработка центрального сегмента ===
-		if (segmentName === "center") {
-			const key = Object.keys(newProperties)[0]; // берём первый изменённый ключ
+		const key = Object.keys(newProperties)[0]; // берём первый изменённый ключ
 
-			if (["length", "zOffset", "xOffset"].includes(key)) {
-				// если меняем геометрию — пересчёт позиций
-				const { length, zOffset, xOffset } = newProperties;
+		if (["length", "zOffset", "xOffset"].includes(key)) {
+			// если меняем геометрию — пересчёт позиций
+			const { length, zOffset, xOffset } = newProperties;
+			const lengthDelta = selectedPart.shapeSegments.center.length - length;
+			const zOffsetDelta = selectedPart.shapeSegments.center.zOffset - zOffset;
+			const xOffsetDelta = selectedPart.shapeSegments.center.xOffset - xOffset;
 
-				// основной part
-				addUpdate(selectedPart.id, "front", { pos: [xOffset, zOffset, length / 2] });
-				addUpdate(selectedPart.id, "back", { pos: [-xOffset, -zOffset, -length / 2] });
+			// основной part
+			addUpdate(selectedPart.id, "front", { pos: [xOffset, zOffset, length / 2] });
+			addUpdate(selectedPart.id, "back", { pos: [-xOffset, -zOffset, -length / 2] });
 
-				// связанные части
-				if (settingsStorage.move.autoResizeParts) {
-					selectedPart.attachedParts.forEach((ap) => {
-						const props = {};
-						addUpdate(ap.id, otherSide(ap.name), props);
-					});
-					if (selectedPart.attachedToPart) {
-						const props = {};
-						addUpdate(selectedPart.attachedToPart.id, selectedPart.attachedToPart.name, props);
-					}
-				}
-			} else {
-				// если изменяется что-то общее (например, цвет/материал)
-				addUpdate(selectedPart, "front", newProperties);
-				addUpdate(selectedPart, "back", newProperties);
+			selectedPart.attachedParts.forEach((ap) => {
+				translateList.push({ id: ap.id, posDelta: [-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2] });
+			});
+			if (selectedPart.attachedToPart) {
+				translateList.push({ id: selectedPart.attachedToPart.id, posDelta: [xOffsetDelta, zOffsetDelta, lengthDelta / 2] });
+			}
+		} else {
+			addUpdate(selectedPart.id, "front", newProperties);
+			addUpdate(selectedPart.id, "back", newProperties);
 
+			if (settingsStorage.move.autoResizeParts) {
 				selectedPart.attachedParts.forEach((ap) => {
-					addUpdate(ap, otherSide(ap.name), newProperties);
+					addUpdate(ap.id, otherSide(ap.name), newProperties);
 				});
 				if (selectedPart.attachedToPart) {
 					addUpdate(selectedPart.attachedToPart.id, selectedPart.attachedToPart.name, newProperties);
 				}
 			}
-
-			tasks.updShapeCenter = { part: selectedPart, newProperties };
-		}
-		// === Обработка конкретного сегмента (front/back/др.) ===
-		else {
-			addUpdate(selectedPart.id, segmentName, newProperties);
-
-			if (settingsStorage.move.autoResizeParts) {
-				selectedPart.attachedParts.forEach((ap) => {
-					if (ap.name === segmentName) {
-						addUpdate(ap.id, otherSide(ap.name), newProperties);
-					}
-				});
-			}
 		}
 
-		// === Итоговый пакет изменений ===
 		partsStorageAPI((api) => {
-			api.todo({
-				...tasks,
-				updPartsSegmentNameProps: list,
-				selectPartID: selectedPart.id,
-				commit: 0,
-			});
+			api.translateParts(translateList);
+			api.updShapeCenter(selectedPart.id, newProperties);
+			api.updPartsSegmentNameProps(list);
+			api.selectPartID(selectedPart.id);
+			api.commit();
 		});
 	};
 
@@ -162,6 +207,10 @@ export function SidebarUI() {
 			}
 		});
 	};
+
+	const handleConnectionToggle = (partId) => {};
+
+	const handleConnectionDelete = (partId) => {};
 
 	if (!partsIconsRef.current) {
 		const arr = [];
@@ -194,6 +243,10 @@ export function SidebarUI() {
 						handleMovePart={handleMovePart}
 						handlePrevPart={handlePrevPart}
 						handleNextPart={handleNextPart}
+						handleChangeCenterProperties={handleChangeCenterProperties}
+						handleRotatePart={handleRotatePart}
+						handleConnectionToggle={handleConnectionToggle}
+						handleConnectionDelete={handleConnectionDelete}
 					/>
 				)}
 				{activePanel === "ADD_PARTS" && (

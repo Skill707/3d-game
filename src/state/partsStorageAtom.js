@@ -1,6 +1,5 @@
 import { atom } from "jotai";
 import { generatePoints, Part } from "../utils/partFactory";
-import { clonePosWithOffset } from "../utils/transformUtils";
 
 const loadPartsFromStorage = () => {
 	try {
@@ -22,7 +21,7 @@ function updateShapeSegment(shapeSegments, newSegment) {
 	return { ...shapeSegments, [newSegment.name]: newSegment };
 }
 function updateShapeSegmentProperties(segment, newProperties) {
-	return { ...segment, ...newProperties, name: segment.name, pos: segment.pos, rot: segment.rot, closed: segment.closed };
+	return { ...segment, ...newProperties, name: segment.name, closed: segment.closed };
 }
 
 const initialState = { parts: [new Part({ id: 0, name: "fueltank", root: true })], selectedPart: null };
@@ -108,16 +107,29 @@ export default atom(
 				});
 				return attachedParts;
 			},
-			transformation: (id, properties) => {
-				let updatedPart = null;
-				updatedParts = 999;
-				return updatedPart;
+			translateParts: (list) => {
+				list.forEach((part) => {
+					const statePart = newState.parts.find((p) => p.id === part.id);
+					const newPos = [statePart.pos[0] + part.posDelta[0], statePart.pos[1] + part.posDelta[1], statePart.pos[2] + part.posDelta[2]];
+					api.updPartProperties(part.id, {
+						pos: newPos,
+					});
+				});
 			},
-			updShapeCenter: (part, newProperties) => {
-				let newShapeSegments = structuredClone(part.shapeSegments);
-				const newSegment = updateShapeSegmentProperties(newShapeSegments.center, newProperties);
-				newShapeSegments.center = newSegment;
-				api.updPartProperties(part.id, {
+			rotateParts: (list) => {
+				list.forEach((part) => {
+					const statePart = newState.parts.find((p) => p.id === part.id);
+					const newRot = [statePart.rot[0] + part.rotDelta[0], statePart.rot[1] + part.rotDelta[1], statePart.rot[2] + part.rotDelta[2]];
+					api.updPartProperties(part.id, {
+						rot: newRot,
+					});
+				});
+			},
+			updShapeCenter: (id, newProperties) => {
+				const statePart = newState.parts.find((p) => p.id === id);
+				let newShapeSegments = structuredClone(statePart.shapeSegments);
+				newShapeSegments.center = { ...newShapeSegments.center, ...newProperties };
+				api.updPartProperties(id, {
 					shapeSegments: newShapeSegments,
 				});
 			},
@@ -154,7 +166,6 @@ export default atom(
 );
 
 /*
-
 		function updateParts(list) {
 			const updatedParts = list;
 			const updatedPartsList = newState.parts.map((part) => {
@@ -169,27 +180,4 @@ export default atom(
 			newState.parts = updatedPartsList;
 			return updatedParts;
 		}
-
-	saveAttached: (part) => {
-				if ((part && part.attachedParts) || !objects) return api;
-				const recursive = (part, objects) => {
-					const id = part.id;
-					const attachedParts = part.attachedParts;
-					attachedParts.forEach((attach) => {
-						console.log(attach);
-						const selObj = objects.find((obj) => "dragPart" + id === obj.name);
-
-						const newPos = clonePosWithOffset(selObj, attach.offset);
-
-						const updatedPart = updatePartsOne(attach.id, {
-							pos: [newPos.x, newPos.y, newPos.z],
-							rot: [selObj.rotation.x, selObj.rotation.y, selObj.rotation.z],
-						});
-						updatedParts.push(updatedPart);
-						//recursive(updatedPart, objects);
-					});
-				};
-
-				return api;
-			},
 */
