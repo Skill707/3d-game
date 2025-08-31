@@ -145,7 +145,7 @@ const otherSide = (side) => {
 	} else if (side === "back") {
 		return "front";
 	} else {
-		return null;
+		return "side";
 	}
 };
 
@@ -174,7 +174,32 @@ export function moveAttached(id, attachedParts, objects) {
 	});
 }
 
-export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false) => {
+export function moveAttachedTo(id, attachedToParts, objects) {
+	if (!attachedToParts) return;
+
+	attachedToParts.forEach((part) => {
+		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
+		const obj = objects.find((obj) => "dragPart" + part.id === obj.name);
+		if (!selObj || !obj) return;
+
+		if (part.offsetMatrix) {
+			const offsetMatrix = new THREE.Matrix4().fromArray(part.offsetMatrix);
+
+			// obj.matrixWorld = selObj.matrixWorld * offsetMatrix
+			const newMatrix = new THREE.Matrix4().copy(selObj.matrixWorld).multiply(offsetMatrix);
+
+			// Деконструируем матрицу в position/quaternion/scale
+			newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
+		}
+
+		const found = obj.userData;
+		if (found) {
+			moveAttachedTo(found.id, found.attachedToParts, objects);
+		}
+	});
+}
+
+export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false, mode = "Connected") => {
 	partsStorageAPI((api, prev) => {
 		if (objects) {
 			api.setObjects(objects);
@@ -194,17 +219,7 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			const hitGroupObject = lastHit.object.parent;
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPartID)) {
-				const offsetMatrix = new THREE.Matrix4().copy(hitGroupObject.matrixWorld).invert().multiply(object.matrixWorld);
-				api.addAttachedPart(hitPart.id, {
-					id: selectedPartID,
-					offsetMatrix: offsetMatrix.toArray(),
-					name: attachTo,
-				});
-				selectedPartPartProperties.attachedToPart = {
-					id: hitPart.id,
-					offsetMatrix: offsetMatrix.toArray(),
-					name: attachTo,
-				};
+				api.connectParts(hitGroupObject, attachTo, object);
 				if (autoResizeParts && attachTo !== "side") {
 					const hitSegment = hitPart.shapeSegments[attachTo];
 					const selectedSegment = selectedPart.shapeSegments[otherSide(attachTo)];
@@ -219,7 +234,10 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			}
 		}
 
-		moveAttached(selectedPartID, selectedPart.attachedParts, objects);
+		if (mode === "Connected") {
+			moveAttached(selectedPartID, selectedPart.attachedParts, objects);
+			moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
+		}
 
 		function saveAttaced(attachedParts) {
 			if (!attachedParts) return;
@@ -246,6 +264,10 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 		api.commit();
 	});
 };
+
+export function getOffsetMatrix(firstObject, secondObject) {
+	return new THREE.Matrix4().copy(firstObject.matrixWorld).invert().multiply(secondObject.matrixWorld).toArray();
+}
 
 /*
 , handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 

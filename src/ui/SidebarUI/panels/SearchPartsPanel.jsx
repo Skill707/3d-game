@@ -12,11 +12,16 @@ const panelVariants = {
 };
 
 export function SearchPartsPanel({ onClose }) {
-	const [partsStorage] = useAtom(partsStorageAtom);
+	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const parts = partsStorage.parts;
 	const selectedPart = partsStorage.selectedPart;
 
-	const handleSelectPart = (id) => {};
+	const handleSelectPart = (id) => {
+		partsStorageAPI((api) => {
+			api.selectPartID(id);
+			api.commit();
+		});
+	};
 
 	return (
 		<motion.div className="panel-wrapper search-parts-panel-wrapper" variants={panelVariants} initial="hidden" animate="visible" exit="exit">
@@ -45,7 +50,7 @@ export function SearchPartsPanel({ onClose }) {
 								onClick={() => handleSelectPart(part.id)}
 								tabIndex={0}
 							>
-								{part.name || part.type}
+								{part.name || part.type}-{part.id}
 							</div>
 						))}
 					</div>

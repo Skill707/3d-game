@@ -1,5 +1,6 @@
 import { atom } from "jotai";
 import { generatePoints, Part } from "../utils/partFactory";
+import { getOffsetMatrix } from "../utils/transformUtils";
 
 const loadPartsFromStorage = () => {
 	try {
@@ -24,9 +25,19 @@ function updateShapeSegmentProperties(segment, newProperties) {
 	return { ...segment, ...newProperties, name: segment.name, closed: segment.closed };
 }
 
-const initialState = { parts: [new Part({ id: 0, name: "fueltank", root: true })], selectedPart: null };
+const otherSide = (side) => {
+	if (side === "front") {
+		return "back";
+	} else if (side === "back") {
+		return "front";
+	} else {
+		return side;
+	}
+};
 
-const basePartsAtom = atom(initialState);
+const initialState = { parts: [new Part({ id: 0, type: "fueltank", root: true })], selectedPart: null };
+
+const basePartsAtom = atom(loadPartsFromStorage());
 
 export default atom(
 	(get) => get(basePartsAtom),
@@ -65,7 +76,7 @@ export default atom(
 				if (typeof prop === "string") {
 					parameters = {
 						id: newID,
-						name: prop,
+						type: prop,
 					};
 				} else if (typeof prop === "object") {
 					parameters = { ...prop, id: newID };
@@ -99,13 +110,77 @@ export default atom(
 				updatedParts.push(updatedPart);
 				return updatedPart;
 			},
-			addAttachedPart: (id, ap) => {
-				const statePart = newState.parts.find((p) => p.id === id);
-				const attachedParts = [...statePart.attachedParts, ap];
-				api.updPartProperties(id, {
-					attachedParts: attachedParts,
+			updPartListProps: (list) => {
+				newState.parts = newState.parts.map((part) => {
+					list.forEach((element, index) => {
+						if (part.id === element.id) {
+							if (element.pushTo) {
+								for (let propertieName in element.pushTo) {
+									const value = element.pushTo[propertieName];
+									if (Array.isArray(value)) {
+										value.forEach((arrElement) => {
+											part = { ...part, ...part[propertieName].push(arrElement) };
+										});
+									} else {
+										part = { ...part, ...part[propertieName].push(value) };
+									}
+								}
+							} else if (element.filterByID) {
+								for (let propertieName in element.filterByID) {
+									const value = element.filterByID[propertieName];
+									if (Array.isArray(value)) {
+										value.forEach((arrElement) => {
+											const filtered = part[propertieName].filter((f) => arrElement.id !== f.id);
+											part = { ...part, [propertieName]: filtered };
+										});
+									} else {
+										const filtered = part[propertieName].filter((f) => value.id !== f.id);
+										part = { ...part, [propertieName]: filtered };
+									}
+								}
+							} else if (element.properties) {
+								part = { ...part, ...element.properties };
+							}
+							list[index] = part;
+						}
+					});
+					return part;
 				});
-				return attachedParts;
+				updatedParts.push(...list);
+				return list;
+			},
+			connectParts: (firstObject, attachTo, secondObject) => {
+				const firstPartID = firstObject.userData.id;
+				const secondPartID = secondObject.userData.id;
+				if (firstPartID === secondPartID) return;
+				const firstStatePartAttachedParts = {
+					id: secondPartID,
+					name: secondObject.userData.name,
+					offsetMatrix: getOffsetMatrix(firstObject, secondObject),
+					place: attachTo,
+					root: secondObject.userData.root,
+				};
+				const secondStatePartAttachedToParts = {
+					id: firstPartID,
+					name: firstObject.userData.name,
+					offsetMatrix: getOffsetMatrix(secondObject, firstObject),
+					place: otherSide(attachTo),
+					root: firstObject.userData.root,
+				};
+				const list = [
+					{ id: firstPartID, pushTo: { attachedParts: firstStatePartAttachedParts } },
+					{ id: secondPartID, pushTo: { attachedToParts: secondStatePartAttachedToParts } },
+				];
+				return api.updPartListProps(list);
+			},
+			disconnectPart: (partID) => {
+				const statePart = newState.parts.find((p) => p.id === partID) || null;
+				const list = [];
+				statePart.attachedToParts.forEach((element) => {
+					list.push({ id: element.id, filterByID: { attachedParts: { id: partID } } });
+				});
+				list.push({ id: partID, properties: { attachedToParts: [] } });
+				return api.updPartListProps(list);
 			},
 			translateParts: (list) => {
 				list.forEach((part) => {
@@ -143,12 +218,25 @@ export default atom(
 					});
 				});
 			},
+			deleteAttached: (id, id2) => {
+				const statePart = newState.parts.find((p) => p.id === id);
+				const newAttachedParts = statePart.attachedParts.filter((ap) => ap.id !== id2);
+				api.updPartProperties(id, {
+					attachedParts: newAttachedParts,
+				});
+			},
+			deleteAttachedTo: (id, id2) => {
+				const statePart = newState.parts.find((p) => p.id === id);
+				const newAttachedToParts = statePart.attachedToParts.filter((ap) => ap.id !== id2);
+				api.updPartProperties(id, {
+					attachedToParts: newAttachedToParts,
+				});
+			},
 			todo: (tasks) => {
-				console.log("todo:");
 				for (const key in tasks) {
 					const value = tasks[key];
 					const ret = api[key](value);
-					console.log(key, "(", value, ")=>", ret);
+					//(key, "(", value, ")=>", ret);
 				}
 			},
 			commit: (state) => {
@@ -164,20 +252,3 @@ export default atom(
 		return updatedParts;
 	}
 );
-
-/*
-		function updateParts(list) {
-			const updatedParts = list;
-			const updatedPartsList = newState.parts.map((part) => {
-				for (let index = 0; index < list.length; index++) {
-					const element = list[index];
-					const updatedPart = updatePartProperties(part, element.properties);
-					updatedParts[index] = updatedPart;
-					if (part.id === element.id) return updatedPart;
-					return part;
-				}
-			});
-			newState.parts = updatedPartsList;
-			return updatedParts;
-		}
-*/

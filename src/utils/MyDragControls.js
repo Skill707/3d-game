@@ -225,7 +225,7 @@ function onPointerMove(event) {
 
 		_intersections.length = 0;
 		raycaster.intersectObjects(
-			this.objects.filter((o) => o !== this.selected && o.userData.attachedToPart !== this.selected.userData.id),
+			this.objects.filter((o) => o !== this.selected), //  && o.userData.attachedToPart !== this.selected.userData.id
 			this.recursive,
 			_intersections
 		);

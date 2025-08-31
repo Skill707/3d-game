@@ -77,17 +77,18 @@ export const shapeRegistry = {
 export class Part {
 	constructor(parameters) {
 		this.id = parameters.id;
-		this.name = parameters.name;
+		this.name = parameters.type.charAt(0).toUpperCase() + parameters.type.slice(1);
+		this.type = parameters.type;
 		this.pos = parameters.pos || [0, 0, 0];
 		this.rot = parameters.rot || [0, 0, 0];
 		this.mass = parameters.mass || 1;
 		this.color = parameters.color || "gray";
 		this.attachedParts = parameters.attachedParts || [];
-		this.attachedToPart = parameters.attachedToPart || null;
-		this.shapeSegments = parameters.shapeSegments || shapeRegistry[parameters.name] || null;
+		this.attachedToParts = parameters.attachedToParts || [];
+		this.shapeSegments = parameters.shapeSegments || shapeRegistry[parameters.type] || null;
 		this.drag = false;
 		this.objectName = parameters.objectName || "dragPart" + parameters.id;
-		this.root = false;
+		this.root = parameters.root || false;
 	}
 }
 
@@ -102,15 +103,7 @@ export const CreatePart = ({ part, selected = false }) => {
 				lockZ={false} // Lock the rotation on the z axis (default=false)
 			>
 				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-					{part.objectName +
-						"|" +
-						" [" +
-						part.attachedParts.map((ap) => ap.name + ap.id) +
-						"]" +
-						" (" +
-						(part.attachedToPart?.name + part.attachedToPart?.id) +
-						")\n" +
-						part.rot.map((r) => (r * 57.2958).toFixed(2))}
+					{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
 				</Text>
 			</Billboard>
 		</group>

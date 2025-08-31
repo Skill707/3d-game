@@ -44,6 +44,7 @@ export function SidebarUI() {
 					const newIndex = (currentIndex + 1) % toolOrder.length;
 					return { ...prev, activeSubToolId: toolOrder[newIndex] };
 				});
+				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
 			},
 			paintTool: () => {
 				setSettingsStorage((prev) => {
@@ -115,11 +116,11 @@ export function SidebarUI() {
 
 		if (settingsStorage.move.autoResizeParts) {
 			selectedPart.attachedParts.forEach((ap) => {
-				if (ap.name === segmentName) list.push({ id: ap.id, segmentName: otherSide(ap.name), newProperties });
+				if (ap.place === segmentName) list.push({ id: ap.id, segmentName: otherSide(ap.place), newProperties });
 			});
-			if (selectedPart.attachedToPart && segmentName === otherSide(selectedPart.attachedToPart.name)) {
-				list.push({ id: selectedPart.attachedToPart.id, segmentName: selectedPart.attachedToPart.name, newProperties });
-			}
+			selectedPart.attachedToParts.forEach((atp) => {
+				if (atp.place === segmentName) list.push({ id: atp.id, segmentName: otherSide(atp.place), newProperties });
+			});
 		}
 
 		partsStorageAPI((api) => {
@@ -154,20 +155,20 @@ export function SidebarUI() {
 			selectedPart.attachedParts.forEach((ap) => {
 				translateList.push({ id: ap.id, posDelta: [-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2] });
 			});
-			if (selectedPart.attachedToPart) {
-				translateList.push({ id: selectedPart.attachedToPart.id, posDelta: [xOffsetDelta, zOffsetDelta, lengthDelta / 2] });
-			}
+			selectedPart.attachedToParts.forEach((atp) => {
+				translateList.push({ id: atp.id, posDelta: [xOffsetDelta, zOffsetDelta, lengthDelta / 2] });
+			});
 		} else {
 			addUpdate(selectedPart.id, "front", newProperties);
 			addUpdate(selectedPart.id, "back", newProperties);
 
 			if (settingsStorage.move.autoResizeParts) {
 				selectedPart.attachedParts.forEach((ap) => {
-					addUpdate(ap.id, otherSide(ap.name), newProperties);
+					addUpdate(ap.id, otherSide(ap.place), newProperties);
 				});
-				if (selectedPart.attachedToPart) {
-					addUpdate(selectedPart.attachedToPart.id, selectedPart.attachedToPart.name, newProperties);
-				}
+				selectedPart.attachedToParts.forEach((atp) => {
+					addUpdate(atp.id, otherSide(atp.place), newProperties);
+				});
 			}
 		}
 
@@ -182,7 +183,7 @@ export function SidebarUI() {
 
 	const handlePrevPart = () => {
 		selectedPart.attachedParts.forEach((attachedPart) => {
-			if (attachedPart.name === "back") {
+			if (attachedPart.place === "back") {
 				partsStorageAPI((api) => {
 					api.selectPartID(attachedPart.id);
 					api.commit();
@@ -190,16 +191,10 @@ export function SidebarUI() {
 				return;
 			}
 		});
-		if (selectedPart.attachedToPart) {
-			partsStorageAPI((api) => {
-				api.selectPartID(selectedPart.attachedToPart);
-				api.commit();
-			});
-		}
 	};
 	const handleNextPart = () => {
 		selectedPart.attachedParts.forEach((attachedPart) => {
-			if (attachedPart.name === "front") {
+			if (attachedPart.place === "front") {
 				partsStorageAPI((api) => {
 					api.selectPartID(attachedPart.id);
 					api.commit();
@@ -208,9 +203,24 @@ export function SidebarUI() {
 		});
 	};
 
-	const handleConnectionToggle = (partId) => {};
+	const handleClickAttached = (apID) => {
+		console.log("handleClickAttached");
 
-	const handleConnectionDelete = (partId) => {};
+		partsStorageAPI((api) => {
+			api.selectPartID(apID);
+			api.commit();
+		});
+	};
+
+	const handleDeleteAttached = (apID) => {
+		console.log("handleDeleteAttached");
+
+		partsStorageAPI((api) => {
+			api.disconnectPart(apID);
+			api.selectPartID(selectedPart.id);
+			api.commit();
+		});
+	};
 
 	if (!partsIconsRef.current) {
 		const arr = [];
@@ -245,8 +255,8 @@ export function SidebarUI() {
 						handleNextPart={handleNextPart}
 						handleChangeCenterProperties={handleChangeCenterProperties}
 						handleRotatePart={handleRotatePart}
-						handleConnectionToggle={handleConnectionToggle}
-						handleConnectionDelete={handleConnectionDelete}
+						handleDeleteAttached={handleDeleteAttached}
+						handleClickAttached={handleClickAttached}
 					/>
 				)}
 				{activePanel === "ADD_PARTS" && (

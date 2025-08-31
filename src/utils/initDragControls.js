@@ -30,28 +30,24 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 		const button = e.button;
 		orbit.current.enabled = false;
 
+		const selectedPart = e.object.userData;
 		partsStorageAPI((api, prev) => {
-			const selectedPart = prev.parts.find((p) => p.objectName === e.object.name) || null;
 			if (button === 2) {
 				api.addPart({
-					name: selectedPart.name,
+					type: selectedPart.type,
 					pos: e.object.position.clone().toArray(),
 					rot: e.object.rotation.clone().toArray(),
 					shapeSegments: selectedPart.shapeSegments,
 				});
 				api.commit();
 			} else if (button === 0) {
-				let parts = prev.parts.map((p) => {
-					if (selectedPart.attachedToPart && p.id === selectedPart.attachedToPart.id) {
-						return { ...p, attachedParts: p.attachedParts.filter((part) => part.id !== selectedPart.id) };
+				/*if (selectedPart.attachedParts.length > 0) {
+					if (selectedPart.attachedParts.find((p) => p.root)) {
+						
 					}
-					if (p.id === selectedPart.id) {
-						return { ...p, selected: true, drag: true, attachedToPart: null };
-					} else {
-						return { ...p, selected: false, drag: false };
-					}
-				});
-				api.commit({ ...prev, parts, selectedPart: selectedPart });
+				}*/
+				api.disconnectPart(selectedPart.id);
+				api.commit();
 			}
 		});
 	};
@@ -73,7 +69,7 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 	const onDragEnd = (e) => {
 		orbit.current.enabled = true;
 		const destroy = e.destroy;
-		saveTransformation(partsStorageAPI, e.object, e.objects, e.lastHit, autoResizeParts);
+		saveTransformation(partsStorageAPI, e.object, e.objects, e.lastHit, autoResizeParts, "Connected");
 		destroy();
 	};
 

@@ -29,18 +29,7 @@ const baseSettingsAtom = atom({
 		target: "Primary",
 		theme: "Custom",
 	},
-	connections: {
-		partName: "FUEL TANK #502",
-		viewMode: "all",
-		attachPoints: [
-			{ id: 1, type: "surface", name: "Surface", connectedTo: "Fuel Tank #503 - Rotate", enabled: true },
-			{ id: 2, type: "fuel", name: "Bottom", connectedTo: "Griffin Engine #501 - Top", enabled: true },
-			{ id: 3, type: "fuel", name: "Top", connectedTo: "Fuel Tank #497 - Bottom", enabled: true },
-			{ id: 4, type: "rotate", name: "Rotate", connectedTo: null, enabled: true },
-			{ id: 5, type: "shell", name: "Top(Shell)", connectedTo: "Fuel Tank #497 - Bottom(She", enabled: true },
-			{ id: 6, type: "shell", name: "Bottom(Shell)", connectedTo: "Griffin Engine #501 - Top(She", enabled: false },
-		],
-	},
+	connections: {},
 	addParts: {
 		selectedPartType: null,
 		pointerOut: true,

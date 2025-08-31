@@ -1,25 +1,30 @@
 .sensitivity-slider-container {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    width: 100%;
+	display: flex;
+	flex-direction: column;
+	width: 100%;
+}
+
+.sensitivity-slider-text-wrapper {
+	display: flex;
+	width: 100%;
+	justify-content: space-between;
 }
 
 .sensitivity-slider-label {
-    color: var(--text-color);
-    font-size: 0.9rem;
-    flex-shrink: 0;
-}
-
-.slider-wrapper {
-    flex-grow: 1;
-    margin: 0 1rem;
+	color: var(--text-color);
+	font-size: 0.9rem;
+	flex-shrink: 0;
 }
 
 .sensitivity-slider-value {
-    color: var(--text-color);
-    font-size: 0.9rem;
-    flex-shrink: 0;
-    width: 35px; /* Allocate space to prevent layout shift */
-    text-align: right;
+	color: var(--text-color);
+	font-size: 0.9rem;
+	flex-shrink: 0;
+	width: 35px; /* Allocate space to prevent layout shift */
+	text-align: right;
+}
+
+.slider-wrapper {
+	flex-grow: 1;
+	margin: 0 0.9rem;
 }

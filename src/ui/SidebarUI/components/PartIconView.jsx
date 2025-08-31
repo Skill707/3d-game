@@ -18,7 +18,7 @@ function Snapshot({ partName, onRendered }) {
 		<>
 			<ambientLight intensity={0.5} />
 			<directionalLight position={[-20, 20, 20]} intensity={0.8} />
-			<CreatePart part={new Part({ id: "view", name: partName, color:"white" })} />
+			<CreatePart part={new Part({ id: "view", type: partName, color:"white" })} />
 		</>
 	);
 }

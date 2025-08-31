@@ -50,7 +50,14 @@ const Craft = ({ orbit }) => {
 	}
 	const handleEndTransform = () => {
 		if (transformObject) {
-			saveTransformation(partsStorageAPI, transformObject, objects);
+			saveTransformation(
+				partsStorageAPI,
+				transformObject,
+				objects,
+				null,
+				settingsStorage.move.autoResizeParts,
+				settingsStorage[transformControlsMode].mode
+			);
 		}
 	};
 	const rad2deg = (value) => value * (180 / Math.PI);

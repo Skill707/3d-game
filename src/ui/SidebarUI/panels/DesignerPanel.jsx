@@ -102,8 +102,8 @@ export function DesignerPanel({
 	handleNextPart,
 	handleChangeCenterProperties,
 	handleRotatePart,
-	handleConnectionToggle,
-	handleConnectionDelete,
+	handleDeleteAttached,
+	handleClickAttached,
 }) {
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [selectedSection, selectSection] = useState("center");
@@ -472,9 +472,22 @@ export function DesignerPanel({
 						</div>
 						<h4 className="connection-attach-points">{selectedPart.attachedParts.length} x ATTACH POINTS</h4>
 						<div className="connection-list">
-							{selectedPart.attachedParts.map((ap) => {
-								return <ConnectionItem key={ap.id} connection={ap.id} onToggle={handleConnectionToggle} onDelete={handleConnectionDelete} />;
-							})}
+							{selectedPart.attachedToParts.map((ap) => (
+								<ConnectionItem
+									key={ap.id}
+									connection={{ id: ap.id, type: ap.place, name: ap.name }}
+									onClick={handleClickAttached}
+									onDelete={handleDeleteAttached}
+								/>
+							))}
+							{selectedPart.attachedParts.map((ap) => (
+								<ConnectionItem
+									key={ap.id}
+									connection={{ id: ap.id, type: ap.place, name: ap.name }}
+									onClick={handleClickAttached}
+									onDelete={handleDeleteAttached}
+								/>
+							))}
 							<button className="add-connection-btn" onClick={null}>
 								<AddIcon />
 								<span>Add New Connection</span>
