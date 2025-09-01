@@ -11,6 +11,7 @@ const _worldPosition = new Vector3();
 const _inverseMatrix = new Matrix4();
 let _drag = false;
 let _button = -1;
+let _hits = [];
 
 const _up = new Vector3();
 const _right = new Vector3();
@@ -18,35 +19,6 @@ const _right = new Vector3();
 let _hovered = null;
 const _intersections = [];
 
-const STATE = {
-	NONE: -1,
-	PAN: 0,
-	ROTATE: 1,
-};
-
-/**
- * This class can be used to provide a drag'n'drop interaction.
- *
- * ```js
- * const controls = new DragControls( objects, camera, renderer.domElement );
- *
- * // add event listener to highlight dragged objects
- * controls.addEventListener( 'dragstart', function ( event ) {
- *
- * 	event.object.material.emissive.set( 0xaaaaaa );
- *
- * } );
- *
- * controls.addEventListener( 'dragend', function ( event ) {
- *
- * 	event.object.material.emissive.set( 0x000000 );
- *
- * } );
- * ```
- *
- * @augments Controls
- * @three_import import { DragControls } from 'three/addons/controls/DragControls.js';
- */
 class DragControls extends Controls {
 	/**
 	 * Constructs a new controls instance.
@@ -64,32 +36,6 @@ class DragControls extends Controls {
 		 * @type {Array<Object3D>}
 		 */
 		this.objects = objects;
-
-		/**
-		 * Whether children of draggable objects can be dragged independently from their parent.
-		 *
-		 * @type {boolean}
-		 * @default true
-		 */
-		this.recursive = true;
-
-		/**
-		 * This option only works if the `objects` array contains a single draggable  group object.
-		 * If set to `true`, the controls does not transform individual objects but the entire group.
-		 *
-		 * @type {boolean}
-		 * @default false
-		 */
-		this.transformGroup = false;
-
-		/**
-		 * The speed at which the object will rotate when dragged in `rotate` mode.
-		 * The higher the number the faster the rotation.
-		 *
-		 * @type {number}
-		 * @default 1
-		 */
-		this.rotateSpeed = 1;
 
 		/**
 		 * The raycaster used for detecting 3D objects.
@@ -112,6 +58,7 @@ class DragControls extends Controls {
 
 		this.selected = null;
 		this.enabled = true;
+		this._raycast = raycast.bind(this);
 
 		//
 
@@ -181,24 +128,27 @@ class DragControls extends Controls {
 		}
 
 		// determine state
-
-		switch (action) {
-			case MOUSE.PAN:
-			case TOUCH.PAN:
-				this.state = STATE.PAN;
-
-				break;
-
-			case MOUSE.ROTATE:
-			case TOUCH.ROTATE:
-				this.state = STATE.ROTATE;
-
-				break;
-
-			default:
-				this.state = STATE.NONE;
-		}
 	}
+}
+
+function raycast() {
+	const intersections = [];
+	this.raycaster.setFromCamera(_pointer, this.object);
+	let objects = this.objects;
+
+	objects = objects.filter((o) => o !== this.selected);
+
+	objects = objects.filter((o) => {
+		if (this.selected) {
+			const find = this.selected.userData.attachedParts.find((ap) => ap.id === o.userData.id);
+			//console.log("find", find);
+			return find === undefined;
+		}
+		return true;
+	});
+	this.raycaster.intersectObjects(objects, true, intersections);
+	const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("back") || i.object.name.includes("side"));
+	return hits;
 }
 
 function onPointerMove(event) {
@@ -213,42 +163,26 @@ function onPointerMove(event) {
 	raycaster.setFromCamera(_pointer, camera);
 
 	if (this.selected) {
-		if (this.state === STATE.PAN) {
-			if (raycaster.ray.intersectPlane(_plane, _intersection)) {
-				this.selected.position.copy(_intersection.sub(_offset).applyMatrix4(_inverseMatrix));
-			}
-		} else if (this.state === STATE.ROTATE) {
-			_diff.subVectors(_pointer, _previousPointer).multiplyScalar(this.rotateSpeed);
-			this.selected.rotateOnWorldAxis(_up, _diff.x);
-			this.selected.rotateOnWorldAxis(_right.normalize(), -_diff.y);
+		if (raycaster.ray.intersectPlane(_plane, _intersection)) {
+			this.selected.position.copy(_intersection.sub(_offset).applyMatrix4(_inverseMatrix));
 		}
 
-		_intersections.length = 0;
-		raycaster.intersectObjects(
-			this.objects.filter((o) => o !== this.selected), //  && o.userData.attachedToPart !== this.selected.userData.id
-			this.recursive,
-			_intersections
-		);
-
+		_hits = this._raycast();
 		domElement.style.cursor = "move";
 		if (_drag === false) {
 			_drag = true;
 			this.dispatchEvent({ type: "dragstart", object: this.selected, button: _button });
 		}
-		this.dispatchEvent({ type: "drag", object: this.selected, objects: this.objects, hit: _intersections[0] ?? null });
+		this.dispatchEvent({ type: "drag", object: this.selected, objects: this.objects, hit: _hits[0] ?? null });
 
 		_previousPointer.copy(_pointer);
 	} else {
 		// hover support
 
 		if (event.pointerType === "mouse" || event.pointerType === "pen") {
-			_intersections.length = 0;
-
-			raycaster.setFromCamera(_pointer, camera);
-			raycaster.intersectObjects(this.objects, this.recursive, _intersections);
-
-			if (_intersections.length > 0) {
-				const object = _intersections[0].object;
+			_hits = this._raycast();
+			if (_hits.length > 0) {
+				const object = _hits[0].object;
 
 				_plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(_plane.normal), _worldPosition.setFromMatrixPosition(object.matrixWorld));
 
@@ -289,34 +223,17 @@ function onPointerDown(event) {
 	this._updatePointer(event);
 	this._updateState(event);
 
-	_intersections.length = 0;
-
-	raycaster.setFromCamera(_pointer, camera);
-	raycaster.intersectObjects(this.objects, this.recursive, _intersections);
-
-	if (_intersections.length > 0) {
-		if (this.transformGroup === true) {
-			// look for the outermost group in the object's upper hierarchy
-
-			this.selected = findGroup(_intersections[0].object);
-		} else {
-			this.selected = _intersections[0].object;
-		}
-
+	_hits = this._raycast();
+	if (_hits.length > 0) {
+		this.selected = findGroup(_hits[0].object);
 		_plane.setFromNormalAndCoplanarPoint(camera.getWorldDirection(_plane.normal), _worldPosition.setFromMatrixPosition(this.selected.matrixWorld));
 
 		if (raycaster.ray.intersectPlane(_plane, _intersection)) {
-			if (this.state === STATE.PAN) {
-				_inverseMatrix.copy(this.selected.parent.matrixWorld).invert();
-				_offset.copy(_intersection).sub(_worldPosition.setFromMatrixPosition(this.selected.matrixWorld));
-			} else if (this.state === STATE.ROTATE) {
-				// the controls only support Y+ up
-				_up.set(0, 1, 0).applyQuaternion(camera.quaternion).normalize();
-				_right.set(1, 0, 0).applyQuaternion(camera.quaternion).normalize();
-			}
+			_inverseMatrix.copy(this.selected.parent.matrixWorld).invert();
+			_offset.copy(_intersection).sub(_worldPosition.setFromMatrixPosition(this.selected.matrixWorld));
 		}
 
-		this.dispatchEvent({ type: "click", object: this.selected, button: event.button });
+		//this.dispatchEvent({ type: "click", object: this.selected, button: event.button });
 
 		_button = event.button;
 	}
@@ -334,14 +251,12 @@ function onPointerCancel() {
 		};
 		if (_drag === true) {
 			_drag = false;
-			this.dispatchEvent({ type: "dragend", object: this.selected, objects: this.objects, lastHit: _intersections[0] ?? null, destroy: destroy });
+			this.dispatchEvent({ type: "dragend", object: this.selected, objects: this.objects, lastHit: _hits[0] ?? null, destroy: destroy });
 		}
 		this.selected = null;
 	}
 
 	this.domElement.style.cursor = _hovered ? "pointer" : "auto";
-
-	this.state = STATE.NONE;
 }
 
 function onContextMenu(event) {

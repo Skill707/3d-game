@@ -1,7 +1,7 @@
 import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader, KeyboardControls } from "@react-three/drei";
-
+import { Bloom, DepthOfField, EffectComposer, Noise, Outline, Vignette } from "@react-three/postprocessing";
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import Craft from "./components/Craft";
 
@@ -9,15 +9,18 @@ export function AircraftEditorScene() {
 	const orbit = useRef();
 	const canvasRef = useRef(null);
 
-	const toggleFullScreen = () => {
-		if (!document.fullscreenElement) {
-			document.documentElement.requestFullscreen().catch((err) => {
-				console.error(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
-			});
-		} else {
-			if (document.exitFullscreen) {
-				// document.exitFullscreen();
+	const toggleFullScreen = async () => {
+		try {
+			if (!document.fullscreenElement) {
+				await document.documentElement.requestFullscreen();
+
+				// после входа в fullscreen пробуем зафиксировать ориентацию
+				if (screen.orientation && screen.orientation.lock) {
+					await screen.orientation.lock("landscape");
+				}
 			}
+		} catch (err) {
+			console.error(`Error: ${err.message} (${err.name})`);
 		}
 	};
 
@@ -55,19 +58,25 @@ export function AircraftEditorScene() {
 
 	const Controls = {
 		nextTool: "nextTool",
+		reshapeTool: "reshapeTool",
 		paintTool: "paintTool",
 		connections: "connections",
 		addPart: "addPart",
 		properties: "properties",
+		searchParts: "searchParts",
+		menu: "menu",
 	};
 
 	const map = useMemo(
 		() => [
 			{ name: Controls.nextTool, keys: ["KeyM"] },
+			{ name: Controls.reshapeTool, keys: ["KeyF"] },
 			{ name: Controls.paintTool, keys: ["KeyP"] },
 			{ name: Controls.connections, keys: ["KeyC"] },
 			{ name: Controls.addPart, keys: ["KeyA"] },
 			{ name: Controls.properties, keys: ["KeyB"] },
+			{ name: Controls.searchParts, keys: ["KeyS"] },
+			{ name: Controls.menu, keys: ["Escape", "`"] },
 		],
 		[]
 	);
@@ -97,7 +106,7 @@ export function AircraftEditorScene() {
 						infiniteGrid
 					/>
 					<Craft orbit={orbit} />
-
+					<EffectComposer multisampling={8}></EffectComposer>
 					<OrbitControls ref={orbit} enablePan={true} minDistance={5} maxDistance={20} maxPolarAngle={Math.PI / 2 - 0.1} makeDefault />
 					<GizmoHelper alignment="bottom-right" margin={[80, 80]}>
 						<GizmoViewport axisColors={["#9d4b4b", "#2f7f4f", "#3b5b9d"]} labelColor="white" />
@@ -105,6 +114,7 @@ export function AircraftEditorScene() {
 				</Suspense>
 			</Canvas>
 			<Stats className="stats" />
+
 			<Loader />
 		</KeyboardControls>
 	);

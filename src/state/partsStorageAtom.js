@@ -44,7 +44,6 @@ export default atom(
 	(get, set, update) => {
 		let newState = structuredClone(get(basePartsAtom));
 		let updatedParts = [];
-		let objects = null;
 
 		/**
 		 * API для управления частями.
@@ -66,9 +65,6 @@ export default atom(
 			saveCraft: () => {
 				localStorage.setItem("craftParts", JSON.stringify(newState));
 			},
-			setObjects: (newObjects) => {
-				objects = newObjects;
-			},
 			addPart: (prop) => {
 				const parts = newState.parts;
 				const newID = Math.max(0, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
@@ -87,7 +83,6 @@ export default atom(
 				newState.selectedPart = newPart;
 				return newPart;
 			},
-
 			selectObjectName: (objectName) => {
 				const selectedPart = newState.parts.find((p) => p.objectName === objectName) || null;
 				newState.selectedPart = selectedPart;

@@ -5,7 +5,7 @@ import * as THREE from "three";
 export function ShapedPart({ part, selected }) {
 	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: selected ? "orange" : part.color, side: THREE.DoubleSide }), [selected, part.color]);
 	const segments = part.shapeSegments;
-	const centerHeight = (part.shapeSegments.front.height + part.shapeSegments.back.height)/4
+	const centerHeight = (part.shapeSegments.front.height + part.shapeSegments.back.height) / 4;
 	return (
 		<>
 			<Segment segment={segments.front} material={material} />
@@ -43,7 +43,6 @@ function AddButton({ position = [0, 0, 0], name }) {
 				<boxGeometry args={[0.5, 0.5, 0.05]} />
 				<meshBasicMaterial color="green" />
 			</mesh>
-		
 		</group>
 	);
 }

@@ -100,7 +100,7 @@ export const ConnectingSurface = ({ segmentA, segmentB, material }) => {
 		return () => calcGeometries.forEach((geometry) => geometry.dispose());
 	}, [calcGeometries]);
 
-	if (calcGeometries) return calcGeometries.map((geo, index) => <mesh name={"side"} userData={index} geometry={geo} material={material} />);
+	if (calcGeometries) return calcGeometries.map((geo, index) => <mesh name={"side"} userData={index} geometry={geo} material={material} receiveShadow castShadow />);
 };
 
 /*

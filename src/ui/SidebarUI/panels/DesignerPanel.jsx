@@ -20,6 +20,7 @@ import { SensitivitySlider } from "../components/SensitivitySlider";
 import { SelectionChanger } from "../components/SelectionChanger";
 import { ConnectionItem } from "../components/ConnectionItem";
 import "./styles/DesignerPanel.css";
+import { localPosDelta } from "../../../utils/transformUtils";
 
 // eslint-disable-next-line react-refresh/only-export-components
 export const subTools = [
@@ -53,42 +54,6 @@ const MuiToggleSwitch = ({ label, checked = false, onChange }) => (
 	/>
 );
 
-const ColorPalette = () => {
-	const colors = [
-		"#FFFFFF",
-		"#3B82F6",
-		"#C0C0C0",
-		"#808080",
-		"#000000",
-		"#FFFFFF",
-		"#C0C0C0",
-		"#FFFFFF",
-		"#C0C0C0",
-		"#FFFFFF",
-		"#000000",
-		"#F97316",
-		"#EF4444",
-		"#22C55E",
-		"#FFFFFF",
-		"#000000",
-		"#3B82F6",
-		"#C0C0C0",
-		"#EF4444",
-		"#A955F7",
-		"#1E3A8A",
-		"#FDE047",
-		"#FFFFFF",
-		"#C0C0C0",
-		"#808080",
-	];
-	return (
-		<div className="color-grid">
-			{colors.map((c, i) => (
-				<div key={i} className="color-swatch" style={{ backgroundColor: c }}></div>
-			))}
-		</div>
-	);
-};
 export function DesignerPanel({
 	onClose,
 	activeSubToolId,
@@ -104,6 +69,7 @@ export function DesignerPanel({
 	handleRotatePart,
 	handleDeleteAttached,
 	handleClickAttached,
+	handleColorChange,
 }) {
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [selectedSection, selectSection] = useState("center");
@@ -157,16 +123,18 @@ export function DesignerPanel({
 
 	const handleTranslateChange = (field) => (newValue) => {
 		let posDelta = [0, 0, 0];
-
 		const pos = {
 			xPos: 0,
 			yPos: 1,
 			zPos: 2,
 		};
-
 		if (pos[field] !== undefined) posDelta[pos[field]] += newValue - selectedPart.pos[pos[field]];
 
-		handleMovePart(posDelta);
+		if (settingsStorage.translate.direction === "Local") {
+			handleMovePart(localPosDelta(posDelta, selectedPart.rot));
+		} else {
+			handleMovePart(posDelta);
+		}
 	};
 
 	const handleRotateChange = (field) => (newValue) => {
@@ -185,15 +153,26 @@ export function DesignerPanel({
 
 	const handleSeclectSection = (name) => selectSection(name);
 
+	const ColorPalette = () => {
+		const colors = ["#FFFFFF", "#C0C0C0", "#808080", "#000000", "#F97316", "#EF4444", "#22C55E", "#3B82F6", "#A955F7", "#1E3A8A", "#FDE047", "green"];
+		return (
+			<div className="color-grid">
+				{colors.map((c, i) => (
+					<div key={i} className="color-swatch" style={{ backgroundColor: c }} onClick={() => handleColorChange(c)}></div>
+				))}
+			</div>
+		);
+	};
+
 	const renderContent = () => {
-		if (!selectedPart) {
+		if (!selectedPart && activeSubToolId !== "PAINT") {
 			return (
 				<Box className="part-properties-empty">
 					<Typography>Select a part to view its customizable properties.</Typography>
 				</Box>
 			);
 		}
-		const segments = selectedPart.shapeSegments;
+		const segments = selectedPart?.shapeSegments;
 
 		switch (activeSubToolId) {
 			case "MOVE": {
@@ -359,6 +338,13 @@ export function DesignerPanel({
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
+								<SensitivitySlider
+									label="Angle"
+									value={segments.center.angle}
+									onChange={handlePropertiesChange("angle")}
+									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
 							</>
 						)}
 
@@ -400,10 +386,30 @@ export function DesignerPanel({
 								<SensitivitySlider label="Corner 3" value={segments[selectedSection].corner3} onChange={handlePropertiesChange("corner3")} />
 								<SensitivitySlider label="Corner 4" value={segments[selectedSection].corner4} onChange={handlePropertiesChange("corner4")} />
 
-								<SensitivitySlider label="Clamp 1" value={segments[selectedSection].clamp1} onChange={handlePropertiesChange("clamp1")} />
-								<SensitivitySlider label="Clamp 2" value={segments[selectedSection].clamp2} onChange={handlePropertiesChange("clamp2")} />
-								<SensitivitySlider label="Clamp 3" value={segments[selectedSection].clamp3} onChange={handlePropertiesChange("clamp3")} />
-								<SensitivitySlider label="Clamp 4" value={segments[selectedSection].clamp4} onChange={handlePropertiesChange("clamp4")} />
+								<SensitivitySlider
+									label="Clamp 1"
+									value={segments[selectedSection].clamp1}
+									onChange={handlePropertiesChange("clamp1")}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider
+									label="Clamp 2"
+									value={segments[selectedSection].clamp2}
+									onChange={handlePropertiesChange("clamp2")}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider
+									label="Clamp 3"
+									value={segments[selectedSection].clamp3}
+									onChange={handlePropertiesChange("clamp3")}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
+								<SensitivitySlider
+									label="Clamp 4"
+									value={segments[selectedSection].clamp4}
+									onChange={handlePropertiesChange("clamp4")}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
+								/>
 								<SensitivitySlider
 									label="Pinch X"
 									value={segments[selectedSection].pinchX}
@@ -423,12 +429,14 @@ export function DesignerPanel({
 									value={segments[selectedSection].slant}
 									onChange={handlePropertiesChange("slant")}
 									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Angle"
 									value={segments[selectedSection].angle}
 									onChange={handlePropertiesChange("angle")}
 									min={-100}
+									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 							</>
 						)}

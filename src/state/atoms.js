@@ -28,6 +28,7 @@ const baseSettingsAtom = atom({
 	paint: {
 		target: "Primary",
 		theme: "Custom",
+		selected: "#FFFFFF",
 	},
 	connections: {},
 	addParts: {

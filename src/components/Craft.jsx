@@ -7,6 +7,8 @@ import { TransformControls } from "@react-three/drei";
 import { useThree } from "@react-three/fiber";
 import partsStorageAtom from "../state/partsStorageAtom";
 import { saveTransformation } from "../utils/transformUtils";
+import useMouseControls from "../hooks/useMouseControls";
+import { EffectComposer, Outline } from "@react-three/postprocessing";
 
 const Craft = ({ orbit }) => {
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
@@ -22,6 +24,7 @@ const Craft = ({ orbit }) => {
 		lastAddedRef,
 		settingsStorage
 	);
+	useMouseControls(partsStorage, partsStorageAPI, settingsStorage, orbit);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
@@ -87,8 +90,18 @@ const Craft = ({ orbit }) => {
 							? settingsStorage.translate.direction.toLocaleLowerCase()
 							: settingsStorage.rotate.direction.toLocaleLowerCase()
 					}
+					size={transformObject.userData.shapeSegments.center.length * 0.2}
 				/>
 			)}
+			{/*<Outline
+				selection={transformObject} // сюда кидаешь mesh или массив mesh'ей
+				edgeStrength={4}
+				pulseSpeed={0}
+				visibleEdgeColor={0xffffff}
+				hiddenEdgeColor={0x000000}
+				blur
+				xRay
+			/>*/}
 		</>
 	);
 };

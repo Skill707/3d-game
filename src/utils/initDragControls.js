@@ -1,12 +1,11 @@
 //import { DragControls } from "three/examples/jsm/Addons.js";
+import { transformSelectedObject } from "../state/actions.js";
 import { DragControls } from "../utils/MyDragControls.js";
-import { moveAttached, saveTransformation, transformSelectedObject } from "./transformUtils.js";
+import { moveAttached, saveTransformation } from "./transformUtils.js";
 
 export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsStorage) => {
 	const [camera, domElement, orbit] = threeStuff;
 	const controls = new DragControls(objects, camera, domElement);
-
-	controls.transformGroup = true;
 	controls.mouseButtons = {
 		LEFT: 1,
 		RIGHT: 1,
@@ -15,16 +14,6 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 	const autoResizeParts = settingsStorage.move.autoResizeParts;
 	const autoRotateParts = settingsStorage.move.autoRotateParts;
 	const attachToSurfaces = settingsStorage.move.attachToSurfaces;
-
-	const onClick = (e) => {
-		const button = e.button;
-		if (button === 0) {
-			partsStorageAPI((api) => {
-				api.selectObjectName(e.object.name);
-				api.commit();
-			});
-		}
-	};
 
 	const onDragStart = (e) => {
 		const button = e.button;
@@ -41,11 +30,6 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 				});
 				api.commit();
 			} else if (button === 0) {
-				/*if (selectedPart.attachedParts.length > 0) {
-					if (selectedPart.attachedParts.find((p) => p.root)) {
-						
-					}
-				}*/
 				api.disconnectPart(selectedPart.id);
 				api.commit();
 			}
@@ -73,7 +57,6 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 		destroy();
 	};
 
-	controls.addEventListener("click", (e) => onClick(e));
 	controls.addEventListener("dragstart", (e) => onDragStart(e));
 	controls.addEventListener("drag", onDrag);
 	controls.addEventListener("dragend", (e) => onDragEnd(e));

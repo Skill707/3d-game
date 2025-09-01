@@ -1,4 +1,4 @@
-import { Billboard, Text } from "@react-three/drei";
+import { Billboard, Sparkles, Text } from "@react-three/drei";
 import { ShapedPart } from "../components/ShapedForm/ShapedPart";
 
 const segmentShapeRegistry = {
@@ -39,7 +39,7 @@ export class shapeSegments {
 	constructor(parameters) {
 		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length || 1], closed: parameters.closed });
 		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length || -1], closed: parameters.closed });
-		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0 };
+		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, angle: 0 };
 	}
 }
 
@@ -95,20 +95,17 @@ export class Part {
 export const CreatePart = ({ part, selected = false }) => {
 	return (
 		<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
+			{selected && <Sparkles scale={[5]} size={5} castShadow />}
 			<ShapedPart part={part} selected={selected} />
-			<Billboard
-				follow={true}
-				lockX={false}
-				lockY={false}
-				lockZ={false} // Lock the rotation on the z axis (default=false)
-			>
-				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-					{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
-				</Text>
-			</Billboard>
+
+			<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
+				{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
+			</Text>
 		</group>
 	);
 };
+
+const rad2deg = (value) => value * (180 / Math.PI);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function generatePoints(segment) {
@@ -119,6 +116,8 @@ export function generatePoints(segment) {
 	const [cx, cy, cz] = center;
 	const w = width || 2;
 	const h = height || 2;
+	const aspectRatio = w / h;
+
 	pinchY *= 0.01;
 	pinchX *= 0.01;
 	slant *= 0.01;
@@ -154,36 +153,40 @@ export function generatePoints(segment) {
 	}
 
 	let points = rawPoints.map(([x, y, z]) => {
-		const scaleX = w / 2 - y * pinchX;
-
-		//const addZ = -y * slant;
-
+		let t;
+		if (pinchX >= 0) t = (y + h / 2) / h;
+		else t = (h / 2 - y) / h;
+		let scaleX = 1 - t * Math.abs(pinchX);
 		return [x * scaleX, y, z];
 	});
 
 	points = points.map(([x, y, z]) => {
-		const scaleY = h / 2 - x * pinchY;
-
+		let t;
+		if (pinchY >= 0) t = (x + w / 2) / w;
+		else t = (w / 2 - x) / w;
+		let scaleY = 1 - t * Math.abs(pinchY);
 		return [x, y * scaleY, z];
 	});
 
 	points = points.map(([x, y, z]) => {
-		const addZ = -y * slant;
-		return [x, y, z + addZ];
-	});
-
-	points = points.map(([x, y, z]) => {
-		y += Math.cos(Math.abs(x) * 2) * angle;
-		//Math.cos(Math.abs(x)*2)
+		let t = Math.abs(x / w);
+		y += Math.cos((t * h * Math.PI) / 2) * angle;
 		return [x, y, z];
 	});
 
-	points = points.map(([x, y, z]) => {
-		y = Math.min(y, (h / 2) * (1 - clapms[0]));
-		y = Math.max(y, (-h / 2) * (1 - clapms[1]));
-		x = Math.min(x, (w / 2) * (1 - clapms[2]));
-		x = Math.max(x, (-w / 2) * (1 - clapms[3]));
+	/*points = points.map(([x, y, z]) => {
+		y = Math.min(y, (h / 2) * (1 - clapms[2]));
+		y = Math.max(y, (-h / 2) * (1 - clapms[3]));
+		x = Math.min(x, (w / 2) * (1 - clapms[0]));
+		x = Math.max(x, (-w / 2) * (1 - clapms[1]));
 		return [x, y, z];
+	});*/
+
+	const deg2rad = (value) => (value * Math.PI) / 180;
+
+	points = points.map(([x, y, z]) => {
+		const addZ = -y * Math.sin(deg2rad(slant * 45));
+		return [x, y * Math.cos(deg2rad(slant * 45)), z + addZ];
 	});
 
 	return points;

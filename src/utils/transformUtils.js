@@ -81,22 +81,9 @@ export function matrix4ToEuler(input) {
 	return null;
 }
 
-export function transformSelectedObject(selectedObject, hit, attachToSurfaces, autoRotateParts) {
-	const point = hit.point.clone();
-	const attachTo = hit.object.name;
-	const localNormal = hit.normal;
-	const hitGroupObject = hit.object.parent;
-	if (!hitGroupObject) return;
+export function attachPart(selectedObject, hitGroupObject, localNormal, point, attachTo = "side") {
 	const hitPart = hitGroupObject.userData;
-	if (!hitPart) return;
-	if (attachToSurfaces) {
-		const final = attachPart(hitPart, hitGroupObject, localNormal, point, attachTo);
-		selectedObject.position.copy(final.position);
-		if (autoRotateParts) selectedObject.rotation.copy(final.rotation);
-	}
-}
-
-function attachPart(hitPart, hitGroupObject, localNormal, point, attachTo = "side") {
+	const selectedPart = selectedObject.userData;
 	let finalPosition = point.clone();
 	let finalQuat = new THREE.Quaternion();
 
@@ -124,16 +111,29 @@ function attachPart(hitPart, hitGroupObject, localNormal, point, attachTo = "sid
 		// Собираем новую матрицу
 		const finalMatrix = new THREE.Matrix4().makeBasis(forward, normal, right.clone().negate());
 		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-		const centerHeight = (hitPart.shapeSegments.front.height + hitPart.shapeSegments.back.height) / 4;
+		const centerHeight = (selectedPart.shapeSegments.front.height + selectedPart.shapeSegments.back.height) / 4;
 		const offset = new THREE.Vector3(0, -centerHeight, 0).applyQuaternion(finalQuat);
 		finalPosition.sub(offset);
 	} else if (attachTo === "front" || attachTo === "back") {
-		const attachFacePos = hitPart.shapeSegments[attachTo].pos;
-		finalPosition.copy(hitGroupObject.position).add(new THREE.Vector3().fromArray(attachFacePos));
-		const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone(), normal.clone());
-		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-		let offset = new THREE.Vector3().fromArray(attachFacePos).applyQuaternion(finalQuat);
-		finalPosition.add(offset);
+		// локальные центры граней
+		const pHit = new THREE.Vector3().fromArray(hitPart.shapeSegments[attachTo].pos);
+		const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments[otherSide(attachTo)].pos);
+		// мировая точка центра грани базовой детали
+		finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
+		// итоговый поворот выбранной детали
+		if (attachTo === "back") {
+			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone().negate(), right.clone().negate(), normal.clone());
+			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix).invert();
+			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
+			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
+			finalPosition.add(offsetSel);
+		} else {
+			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone(), normal.clone());
+			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
+			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
+			finalPosition.sub(offsetSel);
+		}
 	}
 	const finalRotation = new THREE.Euler().setFromQuaternion(finalQuat);
 	return { position: finalPosition, rotation: finalRotation };
@@ -181,6 +181,7 @@ export function moveAttachedTo(id, attachedToParts, objects) {
 		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
 		const obj = objects.find((obj) => "dragPart" + part.id === obj.name);
 		if (!selObj || !obj) return;
+		if (obj.userData.root) return;
 
 		if (part.offsetMatrix) {
 			const offsetMatrix = new THREE.Matrix4().fromArray(part.offsetMatrix);
@@ -201,10 +202,6 @@ export function moveAttachedTo(id, attachedToParts, objects) {
 
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false, mode = "Connected") => {
 	partsStorageAPI((api, prev) => {
-		if (objects) {
-			api.setObjects(objects);
-		}
-
 		const selectedPart = object.userData;
 		const selectedPartID = selectedPart.id;
 
@@ -269,6 +266,26 @@ export function getOffsetMatrix(firstObject, secondObject) {
 	return new THREE.Matrix4().copy(firstObject.matrixWorld).invert().multiply(secondObject.matrixWorld).toArray();
 }
 
+export function localPosDelta(posDelta, rot) {
+	const delta = new THREE.Vector3(...posDelta);
+	const euler = new THREE.Euler(...rot);
+	const quaternion = new THREE.Quaternion().setFromEuler(euler);
+	return delta.applyQuaternion(quaternion).toArray();
+}
+
+export function localRotDelta(rotateDelta, rot) {
+	const euler = new THREE.Euler(...rot);
+	const q = new THREE.Quaternion().setFromEuler(euler);
+
+	const qDelta = new THREE.Quaternion().setFromEuler(
+		new THREE.Euler(...rotateDelta) // например [0, Math.PI/8, 0, "XYZ"]
+	);
+	// умножаем локально
+	q.multiply(qDelta);
+	// сохраняем обратно в Euler
+	const newEuler = new THREE.Euler().setFromQuaternion(q, rot[3]);
+	return newEuler.toArray();
+}
 /*
 , handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 
 	const euler = new THREE.Euler().fromArray(part.rot);

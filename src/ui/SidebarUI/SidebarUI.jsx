@@ -15,6 +15,7 @@ import { shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
 import { useKeyboardControls } from "@react-three/drei";
+import { localPosDelta } from "../../utils/transformUtils";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -30,6 +31,12 @@ export function SidebarUI() {
 			...settingsStorage,
 			activeSubToolId: id,
 		});
+		if (id === "PAINT") {
+			partsStorageAPI((api) => {
+				api.selectPartID(null);
+				api.commit();
+			});
+		}
 	};
 
 	const pressedKey = useKeyboardControls((state) => state);
@@ -37,7 +44,7 @@ export function SidebarUI() {
 	useEffect(() => {
 		const actions = {
 			nextTool: () => {
-				const toolOrder = ["MOVE", "TRANSLATE", "ROTATE", "RESHAPE"];
+				const toolOrder = ["MOVE", "TRANSLATE", "ROTATE"];
 				setSettingsStorage((prev) => {
 					const currentTool = prev.activeSubToolId;
 					const currentIndex = toolOrder.indexOf(currentTool);
@@ -46,16 +53,16 @@ export function SidebarUI() {
 				});
 				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
 			},
+			reshapeTool: () => {
+				setActiveSubToolId("RESHAPE");
+				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
+			},
 			paintTool: () => {
-				setSettingsStorage((prev) => {
-					return { ...prev, activeSubToolId: "PAINT" };
-				});
+				setActiveSubToolId("PAINT");
 				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
 			},
 			connections: () => {
-				setSettingsStorage((prev) => {
-					return { ...prev, activeSubToolId: "CONNECTIONS" };
-				});
+				setActiveSubToolId("CONNECTIONS");
 				if (activePanel !== "DESIGNER") setActivePanel("DESIGNER");
 			},
 			addPart: () => {
@@ -67,6 +74,9 @@ export function SidebarUI() {
 			properties: () => {
 				setActivePanel("PART_PROPERTIES");
 			},
+			menu: () => {
+				setActivePanel("MENU");
+			},
 		};
 
 		for (const [name, value] of Object.entries(pressedKey)) {
@@ -74,6 +84,7 @@ export function SidebarUI() {
 			if (!wasPressed && value && actions[name]) actions[name]();
 			lastPressed.current[name] = value;
 		}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [pressedKey, setSettingsStorage]);
 
 	const handlePanelToggle = (panelId) => {
@@ -153,10 +164,10 @@ export function SidebarUI() {
 			addUpdate(selectedPart.id, "back", { pos: [-xOffset, -zOffset, -length / 2] });
 
 			selectedPart.attachedParts.forEach((ap) => {
-				translateList.push({ id: ap.id, posDelta: [-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2] });
+				translateList.push({ id: ap.id, posDelta: localPosDelta([-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2], selectedPart.rot) });
 			});
 			selectedPart.attachedToParts.forEach((atp) => {
-				translateList.push({ id: atp.id, posDelta: [xOffsetDelta, zOffsetDelta, lengthDelta / 2] });
+				translateList.push({ id: atp.id, posDelta: localPosDelta([xOffsetDelta, zOffsetDelta, lengthDelta / 2], selectedPart.rot) });
 			});
 		} else {
 			addUpdate(selectedPart.id, "front", newProperties);
@@ -204,8 +215,6 @@ export function SidebarUI() {
 	};
 
 	const handleClickAttached = (apID) => {
-		console.log("handleClickAttached");
-
 		partsStorageAPI((api) => {
 			api.selectPartID(apID);
 			api.commit();
@@ -213,13 +222,21 @@ export function SidebarUI() {
 	};
 
 	const handleDeleteAttached = (apID) => {
-		console.log("handleDeleteAttached");
-
 		partsStorageAPI((api) => {
 			api.disconnectPart(apID);
 			api.selectPartID(selectedPart.id);
 			api.commit();
 		});
+	};
+
+	const handleColorChange = (color) => {
+		setSettingsStorage((prev) => ({
+			...prev,
+			paint: {
+				...prev.paint,
+				selected: color,
+			},
+		}));
 	};
 
 	if (!partsIconsRef.current) {
@@ -257,6 +274,7 @@ export function SidebarUI() {
 						handleRotatePart={handleRotatePart}
 						handleDeleteAttached={handleDeleteAttached}
 						handleClickAttached={handleClickAttached}
+						handleColorChange={handleColorChange}
 					/>
 				)}
 				{activePanel === "ADD_PARTS" && (
