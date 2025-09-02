@@ -1,6 +1,6 @@
 import * as THREE from "three";
 
-export default function GlowMesh({ geometry, position, rotation }) {
+export default function GlowMesh({ geometry, position, rotation, scale }) {
 	const GlowMaterial = {
 		uniforms: {
 			glowColor: { value: new THREE.Color(0x00ffff) },
@@ -31,7 +31,7 @@ export default function GlowMesh({ geometry, position, rotation }) {
 	};
 
 	return (
-		<mesh geometry={geometry} position={position} rotation={rotation}>
+		<mesh geometry={geometry} position={position} rotation={rotation} scale={scale}>
 			<shaderMaterial
 				attach="material"
 				args={[GlowMaterial]}

@@ -37,8 +37,8 @@ export class Segment {
 
 export class shapeSegments {
 	constructor(parameters) {
-		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length/2 || 1], closed: parameters.closed });
-		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length/2 || -1], closed: parameters.closed });
+		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length / 2 || 1], closed: parameters.closed });
+		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length / 2 || -1], closed: parameters.closed });
 		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, angle: 0 };
 		this.doubleSided = parameters.doubleSided || false;
 	}
@@ -93,20 +93,19 @@ export class Part {
 	}
 }
 
-export const CreatePart = ({ part, selected = false }) => {
+export const CreatePart = ({ part, selected = false, editor }) => {
 	return (
 		<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
-			{selected && <Sparkles scale={[5]} size={5} castShadow />}
-			<ShapedPart part={part} selected={selected} />
+			<ShapedPart part={part} selected={selected} editor={editor} />
 
-			<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-				{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
-			</Text>
+			{editor && (
+				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
+					{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
+				</Text>
+			)}
 		</group>
 	);
 };
-
-const rad2deg = (value) => value * (180 / Math.PI);
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function generatePoints(segment) {
@@ -117,7 +116,6 @@ export function generatePoints(segment) {
 	const [cx, cy, cz] = center;
 	const w = width || 2;
 	const h = height || 2;
-	const aspectRatio = w / h;
 
 	pinchY *= 0.01;
 	pinchX *= 0.01;

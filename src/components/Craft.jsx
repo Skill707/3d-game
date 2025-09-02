@@ -68,9 +68,9 @@ const Craft = ({ orbit, editor = true }) => {
 	return (
 		<>
 			{partsStorage.parts.map((part) => (
-				<CreatePart key={part.id} part={part} selected={part.id === partsStorage.selectedPart?.id} />
+				<CreatePart key={part.id} part={part} selected={part.id === partsStorage.selectedPart?.id} editor={editor} />
 			))}
-			{transformControlsMode && transformObject && (
+			{editor && transformControlsMode && transformObject && (
 				<TransformControls
 					enabled={true}
 					ref={transformControlsRef}

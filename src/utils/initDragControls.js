@@ -1,7 +1,7 @@
 //import { DragControls } from "three/examples/jsm/Addons.js";
-import { transformSelectedObject } from "../state/actions.js";
+import * as THREE from "three";
 import { DragControls } from "../utils/MyDragControls.js";
-import { moveAttached, saveTransformation } from "./transformUtils.js";
+import { attachPart, moveAttached, saveTransformation } from "./transformUtils.js";
 
 export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsStorage, lastAddedRef) => {
 	const [camera, domElement, orbit] = threeStuff;
@@ -38,17 +38,16 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 	};
 
 	const onDrag = (e) => {
-		const selectedPart = e.object.userData;
-		const objects = e.objects;
-		if (selectedPart.attachedParts.length > 0) {
-			moveAttached(selectedPart.id, selectedPart.attachedParts, objects);
+		const selectedObject = e.object;
+		if (attachToSurfaces && e.hit) {
+			const final = attachPart(selectedObject, e.hit);
+			selectedObject.position.copy(final.position);
+			if (autoRotateParts) selectedObject.rotation.copy(final.rotation);
 		}
-		const hit = e.hit;
-		if (!hit) return;
-		transformSelectedObject(e.object, hit, attachToSurfaces, autoRotateParts);
-		if (selectedPart.attachedParts.length > 0) {
-			moveAttached(selectedPart.id, selectedPart.attachedParts, objects);
-		}
+
+		selectedObject.updateMatrixWorld(true);
+
+		moveAttached(selectedObject, e.objects);
 	};
 
 	const onDragEnd = (e) => {

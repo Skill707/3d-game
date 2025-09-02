@@ -1,8 +1,10 @@
 import { useMemo, useEffect } from "react";
 import * as THREE from "three";
 import GlowMesh from "./GlowMesh";
+import { ConvexHullCollider } from "@react-three/rapier";
+import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
-export const ConnectingSurface = ({ segmentA, segmentB, material, selected }) => {
+export const ConnectingSurface = ({ segmentA, segmentB, material, selected, editor }) => {
 	// нормализация по углу вокруг центра
 	function normalizeSection(section) {
 		const cx = section.reduce((s, p) => s + p[0], 0) / section.length;
@@ -74,6 +76,7 @@ export const ConnectingSurface = ({ segmentA, segmentB, material, selected }) =>
 		return [sectionA, sectionB];
 	}
 
+	/*
 	const calcGeometries = useMemo(() => {
 		let sectionA = segmentA.points.map((p) => [p[0] + segmentA.pos[0], p[1] + segmentA.pos[1], p[2] + segmentA.pos[2]]);
 		let sectionB = segmentB.points.map((p) => [p[0] + segmentB.pos[0], p[1] + segmentB.pos[1], p[2] + segmentB.pos[2]]);
@@ -96,21 +99,66 @@ export const ConnectingSurface = ({ segmentA, segmentB, material, selected }) =>
 		}
 		return geometries;
 	}, [segmentA, segmentB]);
+	*/
 
-	useEffect(() => {
-		return () => calcGeometries.forEach((geometry) => geometry.dispose());
-	}, [calcGeometries]);
+	function sanitizeVerts(a) {
+		// убираем NaN/Infinity и гарантируем кратность 3
+		const out = [];
+		for (let i = 0; i + 2 < a.length; i += 3) {
+			const x = a[i],
+				y = a[i + 1],
+				z = a[i + 2];
+			if (Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(z)) out.push(x, y, z);
+		}
+		return new Float32Array(out);
+	}
 
-	if (calcGeometries)
-		return calcGeometries.map((geo, index) => (
-			<>
-				<mesh name={"side"} userData={index} geometry={geo} material={material} receiveShadow castShadow />
-				{selected && <GlowMesh geometry={geo} />}
-			</>
-		));
+	const { geometry, vertices } = useMemo(() => {
+		// 1) генерим стенки между секциями
+		const geos = [];
+		const sectionA = segmentA.points.map((p) => [p[0] + segmentA.pos[0], p[1] + segmentA.pos[1], p[2] + segmentA.pos[2]]);
+		const sectionB = segmentB.points.map((p) => [p[0] + segmentB.pos[0], p[1] + segmentB.pos[1], p[2] + segmentB.pos[2]]);
+		const [A, B] = alignSections(sectionA, sectionB);
+
+		for (let i = 0; i < A.length; i++) {
+			const i1 = (i + 1) % A.length;
+			const a0 = A[i],
+				a1 = A[i1];
+			const b0 = B[i],
+				b1 = B[i1];
+			const pos = new Float32Array([...a0, ...b0, ...a1, ...b0, ...b1, ...a1]);
+			const g = new THREE.BufferGeometry();
+			g.setAttribute("position", new THREE.BufferAttribute(pos, 3));
+			geos.push(g);
+		}
+
+		// 2) мерджим в одну геометрию
+		const merged = mergeGeometries(geos, false);
+		// важно: для выпуклой оболочки берём НЕиндексированные вершины
+		const nonIndexed = merged.index ? merged.toNonIndexed() : merged;
+		nonIndexed.computeVertexNormals();
+
+		// 3) берём плоский Float32Array и санитизируем
+		const verts = sanitizeVerts(nonIndexed.getAttribute("position").array);
+
+		return { geometry: nonIndexed, vertices: verts };
+	}, [segmentA, segmentB]);
+
+	useEffect(() => () => geometry?.dispose(), [geometry]);
+
+	return (
+		<>
+			<mesh name="side" geometry={geometry} material={material} receiveShadow castShadow />
+			{!editor && <ConvexHullCollider args={[vertices]} />}
+			{selected && editor && <GlowMesh geometry={geometry} />}
+		</>
+	);
 };
 
 /*
+						{selected && <GlowMesh geometry={geo} />}
+
+
 	useFrame(() => {
 		const attachPoints = [[0, -part.size[1], part.size[0] / 2]];
 

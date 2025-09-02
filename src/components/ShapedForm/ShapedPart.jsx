@@ -3,7 +3,7 @@ import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
 import { useMemo } from "react";
 import * as THREE from "three";
 import { Billboard } from "@react-three/drei";
-export function ShapedPart({ part, selected }) {
+export function ShapedPart({ part, selected, editor }) {
 	const segments = part.shapeSegments;
 
 	const material = useMemo(
@@ -20,10 +20,10 @@ export function ShapedPart({ part, selected }) {
 	const centerHeight = (part.shapeSegments.front.height + part.shapeSegments.back.height) / 4;
 	return (
 		<>
-			<Segment segment={segments.front} material={material} selected={selected} />
-			<Segment segment={segments.back} material={material} selected={selected} />
-			<ConnectingSurface segmentA={segments.front} segmentB={segments.back} material={material} part={part} selected={selected} />
-			{selected && (
+			<Segment segment={segments.front} material={material} selected={selected} editor={editor} />
+			<Segment segment={segments.back} material={material} selected={selected} editor={editor} />
+			<ConnectingSurface segmentA={segments.front} segmentB={segments.back} material={material} part={part} selected={selected} editor={editor} />
+			{selected && editor && (
 				<>
 					{segments.front.extendeble && <AddButton pos={segments.front.pos} rot={part.rot} name={"front"} data={segments.front} />}
 					{segments.back.extendeble && <AddButton pos={segments.back.pos} rot={part.rot} name={"back"} data={segments.back} />}

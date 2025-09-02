@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
 import GlowMesh from "./GlowMesh";
 
-export const Segment = ({ segment, material, selected }) => {
+export const Segment = ({ segment, material, selected, editor }) => {
 	const geometry = useMemo(() => {
 		const positions = [];
 
@@ -56,12 +56,15 @@ export const Segment = ({ segment, material, selected }) => {
 					visible={segment.closed}
 					position={segment.pos}
 					rotation={segment.name === "front" ? [0, Math.PI, 0] : [0, 0, 0]}
+					scale={[(segment.name === "front" ? -1 : 1), 1, 1]}
 				/>
-				{selected && (
+				{selected && editor && (
 					<GlowMesh
 						geometry={geometry}
 						position={[segment.pos[0], segment.pos[1], segment.pos[2] + (segment.name === "front" ? 0.1 : -0.1)]}
 						rotation={segment.name === "front" ? [0, Math.PI, 0] : [0, 0, 0]}
+					scale={[(segment.name === "front" ? -1 : 1), 1, 1]}
+
 					/>
 				)}
 			</>

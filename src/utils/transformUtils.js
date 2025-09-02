@@ -81,7 +81,12 @@ export function matrix4ToEuler(input) {
 	return null;
 }
 
-export function attachPart(selectedObject, hitGroupObject, localNormal, point, attachTo = "side") {
+export function attachPart(selectedObject, hit) {
+	const point = hit.point.clone();
+	const attachTo = hit.object.name;
+	const localNormal = hit.normal;
+	const hitGroupObject = hit.object.parent;
+
 	const hitPart = hitGroupObject.userData;
 	const selectedPart = selectedObject.userData;
 	let finalPosition = point.clone();
@@ -141,28 +146,24 @@ const otherSide = (side) => {
 	}
 };
 
-export function moveAttached(id, attachedParts, objects) {
+export function moveAttached(object, objects) {
+	const part = object.userData;
+	const attachedParts = part.attachedParts;
 	if (!attachedParts) return;
 
 	attachedParts.forEach((part) => {
-		const selObj = objects.find((obj) => "dragPart" + id === obj.name);
 		const obj = objects.find((obj) => "dragPart" + part.id === obj.name);
-		if (!selObj || !obj) return;
+		if (!obj) return;
 
 		if (part.offsetMatrix) {
 			const offsetMatrix = new THREE.Matrix4().fromArray(part.offsetMatrix);
-
-			// obj.matrixWorld = selObj.matrixWorld * offsetMatrix
-			const newMatrix = new THREE.Matrix4().copy(selObj.matrixWorld).multiply(offsetMatrix);
-
-			// Деконструируем матрицу в position/quaternion/scale
+			const newMatrix = new THREE.Matrix4().copy(object.matrixWorld).multiply(offsetMatrix);
 			newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
 		}
 
-		const found = obj.userData;
-		if (found) {
-			moveAttached(found.id, found.attachedParts, objects);
-		}
+		obj.updateMatrixWorld(true);
+
+		moveAttached(obj, objects);
 	});
 }
 
@@ -224,8 +225,8 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 		}
 
 		if (mode === "Connected") {
-			moveAttached(selectedPartID, selectedPart.attachedParts, objects);
-			moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
+			moveAttached(object, objects);
+			//moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
 		}
 
 		function saveAttaced(attachedParts) {
