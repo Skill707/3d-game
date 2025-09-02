@@ -8,23 +8,22 @@ import { useThree } from "@react-three/fiber";
 import partsStorageAtom from "../state/partsStorageAtom";
 import { saveTransformation } from "../utils/transformUtils";
 import useMouseControls from "../hooks/useMouseControls";
-import { EffectComposer, Outline } from "@react-three/postprocessing";
 
-const Craft = ({ orbit }) => {
+const Craft = ({ orbit, editor = true }) => {
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
 	const { scene } = useThree();
 
 	const dragControlsRef = useDragControls(
-		settingsStorage.activeSubToolId === "MOVE" || settingsStorage.activeSubToolId === "RESHAPE",
+		(editor && settingsStorage.activeSubToolId === "MOVE") || settingsStorage.activeSubToolId === "RESHAPE",
 		orbit,
 		partsStorage,
 		partsStorageAPI,
 		lastAddedRef,
 		settingsStorage
 	);
-	useMouseControls(partsStorage, partsStorageAPI, settingsStorage, orbit);
+	useMouseControls(editor, partsStorage, partsStorageAPI, settingsStorage, orbit);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
@@ -93,15 +92,6 @@ const Craft = ({ orbit }) => {
 					size={transformObject.userData.shapeSegments.center.length * 0.2}
 				/>
 			)}
-			{/*<Outline
-				selection={transformObject} // сюда кидаешь mesh или массив mesh'ей
-				edgeStrength={4}
-				pulseSpeed={0}
-				visibleEdgeColor={0xffffff}
-				hiddenEdgeColor={0x000000}
-				blur
-				xRay
-			/>*/}
 		</>
 	);
 };

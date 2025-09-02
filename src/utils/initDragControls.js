@@ -3,7 +3,7 @@ import { transformSelectedObject } from "../state/actions.js";
 import { DragControls } from "../utils/MyDragControls.js";
 import { moveAttached, saveTransformation } from "./transformUtils.js";
 
-export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsStorage) => {
+export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsStorage, lastAddedRef) => {
 	const [camera, domElement, orbit] = threeStuff;
 	const controls = new DragControls(objects, camera, domElement);
 	controls.mouseButtons = {
@@ -22,13 +22,14 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 		const selectedPart = e.object.userData;
 		partsStorageAPI((api, prev) => {
 			if (button === 2) {
-				api.addPart({
+				const newPart = api.addPart({
 					type: selectedPart.type,
 					pos: e.object.position.clone().toArray(),
 					rot: e.object.rotation.clone().toArray(),
 					shapeSegments: selectedPart.shapeSegments,
 				});
 				api.commit();
+				lastAddedRef.current = "dragPart" + newPart.id;
 			} else if (button === 0) {
 				api.disconnectPart(selectedPart.id);
 				api.commit();

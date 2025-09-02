@@ -2,18 +2,31 @@ import { Segment } from "../ShapedForm/Segment";
 import { ConnectingSurface } from "../ShapedForm/ConnectingSurface";
 import { useMemo } from "react";
 import * as THREE from "three";
+import { Billboard } from "@react-three/drei";
 export function ShapedPart({ part, selected }) {
-	const material = useMemo(() => new THREE.MeshStandardMaterial({ color: selected ? "orange" : part.color, side: THREE.DoubleSide }), [selected, part.color]);
 	const segments = part.shapeSegments;
+
+	const material = useMemo(
+		() =>
+			new THREE.MeshStandardMaterial({
+				color: part.color,
+				side: segments.doubleSided ? THREE.DoubleSide : THREE.FrontSide,
+				transparent: true,
+				opacity: selected ? 0.9 : 1,
+			}),
+		[part.color, selected, segments]
+	);
+
 	const centerHeight = (part.shapeSegments.front.height + part.shapeSegments.back.height) / 4;
 	return (
 		<>
-			<Segment segment={segments.front} material={material} />
-			<Segment segment={segments.back} material={material} />
-			<ConnectingSurface segmentA={segments.front} segmentB={segments.back} material={material} part={part} />
-			{part.selected && (
+			<Segment segment={segments.front} material={material} selected={selected} />
+			<Segment segment={segments.back} material={material} selected={selected} />
+			<ConnectingSurface segmentA={segments.front} segmentB={segments.back} material={material} part={part} selected={selected} />
+			{selected && (
 				<>
-					{segments.front.extendeble && <AddButton position={segments.front.pos} name={"+"} />}
+					{segments.front.extendeble && <AddButton pos={segments.front.pos} rot={part.rot} name={"front"} data={segments.front} />}
+					{segments.back.extendeble && <AddButton pos={segments.back.pos} rot={part.rot} name={"back"} data={segments.back} />}
 					{part.drag && (
 						<>
 							<AttachPoint position={segments.front.pos} />
@@ -36,13 +49,13 @@ export const AttachPoint = ({ position }) => {
 	);
 };
 
-function AddButton({ position = [0, 0, 0], name }) {
+function AddButton({ pos, name, data }) {
 	return (
-		<group position={position}>
-			<mesh>
-				<boxGeometry args={[0.5, 0.5, 0.05]} />
+		<Billboard position={[pos[0], pos[1], pos[2] + (name === "front" ? 0.5 : -0.5)]}>
+			<mesh name={"extender"} userData={data}>
+				<circleGeometry args={[0.3, 16]} />
 				<meshBasicMaterial color="green" />
 			</mesh>
-		</group>
+		</Billboard>
 	);
 }

@@ -6,14 +6,13 @@ import "./styles/AddPartsPanel.css";
 import { settingsAtom } from "../../../state/atoms";
 import { produce } from "immer";
 
-
 const panelVariants = {
 	hidden: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
 	visible: { x: 0, opacity: 1, transition: { type: "tween", duration: 0.3, ease: "easeOut" } },
 	exit: { x: "-100%", opacity: 0, transition: { type: "tween", duration: 0.3, ease: "easeIn" } },
 };
 
-export function AddPartsPanel({partIcons, onClose }) {
+export function AddPartsPanel({ partIcons, onClose }) {
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 
 	const handleSelectPart = (type, e) => {
@@ -23,8 +22,6 @@ export function AddPartsPanel({partIcons, onClose }) {
 			})
 		);
 	};
-
-	
 
 	return (
 		<motion.div

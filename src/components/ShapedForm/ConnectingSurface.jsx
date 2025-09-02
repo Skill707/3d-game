@@ -1,7 +1,8 @@
 import { useMemo, useEffect } from "react";
 import * as THREE from "three";
+import GlowMesh from "./GlowMesh";
 
-export const ConnectingSurface = ({ segmentA, segmentB, material }) => {
+export const ConnectingSurface = ({ segmentA, segmentB, material, selected }) => {
 	// нормализация по углу вокруг центра
 	function normalizeSection(section) {
 		const cx = section.reduce((s, p) => s + p[0], 0) / section.length;
@@ -100,7 +101,13 @@ export const ConnectingSurface = ({ segmentA, segmentB, material }) => {
 		return () => calcGeometries.forEach((geometry) => geometry.dispose());
 	}, [calcGeometries]);
 
-	if (calcGeometries) return calcGeometries.map((geo, index) => <mesh name={"side"} userData={index} geometry={geo} material={material} receiveShadow castShadow />);
+	if (calcGeometries)
+		return calcGeometries.map((geo, index) => (
+			<>
+				<mesh name={"side"} userData={index} geometry={geo} material={material} receiveShadow castShadow />
+				{selected && <GlowMesh geometry={geo} />}
+			</>
+		));
 };
 
 /*

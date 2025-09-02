@@ -2,12 +2,11 @@ import { Suspense, useEffect, useMemo, useRef } from "react";
 import { Canvas } from "@react-three/fiber";
 import { OrbitControls, Grid, GizmoHelper, GizmoViewport, Stats, Loader, KeyboardControls } from "@react-three/drei";
 import { Bloom, DepthOfField, EffectComposer, Noise, Outline, Vignette } from "@react-three/postprocessing";
-import { AircraftEditorUI } from "./ui/AircraftEditorUI";
-import Craft from "./components/Craft";
+import { AircraftEditorUI } from "../ui/AircraftEditorUI";
+import Craft from "../components/Craft";
 
 export function AircraftEditorScene() {
 	const orbit = useRef();
-	const canvasRef = useRef(null);
 
 	const toggleFullScreen = async () => {
 		try {
@@ -77,7 +76,9 @@ export function AircraftEditorScene() {
 			{ name: Controls.properties, keys: ["KeyB"] },
 			{ name: Controls.searchParts, keys: ["KeyS"] },
 			{ name: Controls.menu, keys: ["Escape", "`"] },
+			{ name: Controls.start, keys: ["Space"] },
 		],
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[]
 	);
 
@@ -85,7 +86,7 @@ export function AircraftEditorScene() {
 		<KeyboardControls map={map}>
 			<OrientationMessage />
 			<AircraftEditorUI />
-			<Canvas ref={canvasRef} shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
+			<Canvas shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
 				<Suspense
 					fallback={() => {
 						console.log("fallback");

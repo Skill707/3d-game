@@ -6,8 +6,9 @@ const raycaster = new Raycaster();
 const pointer = new Vector2();
 let selected = null;
 
-export default function useMouseControls(partsStorage, partsStorageAPI, settingsStorage, orbit) {
+export default function useMouseControls(enabled, partsStorage, partsStorageAPI, settingsStorage, orbit) {
 	const { scene, camera, gl } = useThree();
+
 	function updatePointer(event) {
 		const rect = gl.domElement.getBoundingClientRect();
 		pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -30,6 +31,7 @@ export default function useMouseControls(partsStorage, partsStorageAPI, settings
 	}
 
 	useEffect(() => {
+		if (!enabled) return;
 		function onPointerDown(event) {
 			updatePointer(event);
 
@@ -60,14 +62,31 @@ export default function useMouseControls(partsStorage, partsStorageAPI, settings
 			selected = null;
 		}
 
+		function onDoubleClick(event) {
+			console.log("doubleclick", event);
+			updatePointer(event);
+
+			const intersections = [];
+			raycaster.setFromCamera(pointer, camera);
+			raycaster.intersectObjects(scene.children, true, intersections);
+			const hits = intersections.filter((i) => i.object.name === "extender");
+			if (hits.length > 0) {
+				const hit = hits[0];
+				selected = findGroup(hit.object);
+				console.log("extend segment", hit.object.userData, selected);
+			}
+		}
+
 		gl.domElement.addEventListener("pointerdown", onPointerDown);
 		gl.domElement.addEventListener("pointerup", onPointerCancel);
+		gl.domElement.addEventListener("dblclick", onDoubleClick);
 		return () => {
 			gl.domElement.removeEventListener("pointerdown", onPointerDown);
 			gl.domElement.removeEventListener("pointerup", onPointerCancel);
+			gl.domElement.removeEventListener("dblclick", onDoubleClick);
 		};
 		// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [partsStorage.parts, settingsStorage]);
+	}, [partsStorage.parts, settingsStorage, enabled]);
 
 	return selected;
 }

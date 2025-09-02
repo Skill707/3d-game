@@ -37,9 +37,10 @@ export class Segment {
 
 export class shapeSegments {
 	constructor(parameters) {
-		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length || 1], closed: parameters.closed });
-		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length || -1], closed: parameters.closed });
+		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length/2 || 1], closed: parameters.closed });
+		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length/2 || -1], closed: parameters.closed });
 		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, angle: 0 };
+		this.doubleSided = parameters.doubleSided || false;
 	}
 }
 
@@ -47,13 +48,13 @@ export class shapeSegments {
 
 const blockShape = new shapeSegments({
 	shapeName: "rectangle",
-	length: 1,
 	closed: true,
 });
 
 const fuselageShape = new shapeSegments({
 	shapeName: "circle16",
 	closed: false,
+	doubleSided: true,
 });
 
 const fueltankShape = new shapeSegments({

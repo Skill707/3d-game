@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef } from "react";
 import * as THREE from "three";
+import GlowMesh from "./GlowMesh";
 
-export const Segment = ({ segment, material }) => {
+export const Segment = ({ segment, material, selected }) => {
 	const geometry = useMemo(() => {
 		const positions = [];
 
-		const sectionA = segment.points.map((p) => [p[0] + segment.pos[0], p[1] + segment.pos[1], p[2] + segment.pos[2]]);
-		const sectionB = segment.points.map((p) => [segment.pos[0], segment.pos[1], segment.pos[2]]);
+		const sectionA = segment.points.map((p) => [p[0], p[1], p[2] * (segment.name === "front" ? -1 : 1)]);
+		const sectionB = segment.points.map(() => [0, 0, 0]);
 
 		const nA = sectionA.length;
 		const nB = sectionB.length;
@@ -45,5 +46,24 @@ export const Segment = ({ segment, material }) => {
 		return () => geometry.dispose();
 	}, [geometry]);
 
-	if (geometry) return <mesh name={segment.name} geometry={geometry} material={material} visible={segment.closed} />;
+	if (geometry)
+		return (
+			<>
+				<mesh
+					name={segment.name}
+					geometry={geometry}
+					material={material}
+					visible={segment.closed}
+					position={segment.pos}
+					rotation={segment.name === "front" ? [0, Math.PI, 0] : [0, 0, 0]}
+				/>
+				{selected && (
+					<GlowMesh
+						geometry={geometry}
+						position={[segment.pos[0], segment.pos[1], segment.pos[2] + (segment.name === "front" ? 0.1 : -0.1)]}
+						rotation={segment.name === "front" ? [0, Math.PI, 0] : [0, 0, 0]}
+					/>
+				)}
+			</>
+		);
 };

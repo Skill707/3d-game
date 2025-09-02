@@ -19,19 +19,22 @@ export function useDragControls(enabled, orbit, partsStorage, partsStorageAPI, l
 		if (controlsRef.current === null) {
 			const objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 
-			if (objects.length > 0) controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], partsStorageAPI, settingsStorage);
+			if (objects.length > 0)
+				controlsRef.current = initDragControls(objects, [camera, gl.domElement, orbit], partsStorageAPI, settingsStorage, lastAddedRef);
 		} else {
 			controlsRef.current.objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
 			if (lastAddedRef.current) {
 				const lastAddedObject = scene.getObjectByName(lastAddedRef.current) || null;
-				lastAddedRef.current = null;
 
 				if (lastAddedObject) {
+					console.log("selecet last added", lastAddedObject);
+
 					controlsRef.current.selected = lastAddedObject;
-					controlsRef.current.state = 0;
 				}
 			}
 		}
+		lastAddedRef.current = null;
+
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [partsStorage, enabled, settingsStorage]);
 

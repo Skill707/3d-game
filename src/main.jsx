@@ -2,14 +2,20 @@ import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 
-import { AircraftEditorScene } from "./AircraftEditorScene";
+import { AircraftEditorScene } from "./scenes/AircraftEditorScene";
+import GameScene from "./scenes/GameScene";
+import { useAtom } from "jotai";
+import { baseSceneAtom } from "./state/atoms";
 
 export function Game() {
 	console.log("function Game");
-	
+
+	const [scene] = useAtom(baseSceneAtom);
+
 	return (
 		<>
-			<AircraftEditorScene />
+			{scene === "editor" && <AircraftEditorScene />}
+			{scene === "game" && <GameScene />}
 		</>
 	);
 }

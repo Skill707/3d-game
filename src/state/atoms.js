@@ -46,3 +46,5 @@ export const settingsAtom = atom(
 		set(baseSettingsAtom, newValue);
 	}
 );
+
+export const baseSceneAtom = atom("editor"); 

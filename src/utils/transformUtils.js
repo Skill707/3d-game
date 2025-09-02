@@ -121,19 +121,11 @@ export function attachPart(selectedObject, hitGroupObject, localNormal, point, a
 		// мировая точка центра грани базовой детали
 		finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
 		// итоговый поворот выбранной детали
-		if (attachTo === "back") {
-			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone().negate(), right.clone().negate(), normal.clone());
-			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix).invert();
-			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
-			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
-			finalPosition.add(offsetSel);
-		} else {
-			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone(), normal.clone());
-			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
-			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
-			finalPosition.sub(offsetSel);
-		}
+		const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone().negate(), normal.clone().negate());
+		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+		// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
+		const offsetSel = pSel.clone().applyQuaternion(finalQuat);
+		finalPosition.sub(offsetSel);
 	}
 	const finalRotation = new THREE.Euler().setFromQuaternion(finalQuat);
 	return { position: finalPosition, rotation: finalRotation };
@@ -224,7 +216,7 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 						{
 							id: selectedPartID,
 							segmentName: otherSide(attachTo),
-							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant },
+							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant, extendeble: false },
 						},
 					]);
 				}
@@ -240,14 +232,11 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			if (!attachedParts) return;
 			attachedParts.forEach((ap) => {
 				const attachedPartObj = objects.find((obj) => "dragPart" + ap.id === obj.name);
-
 				api.updPartProperties(ap.id, {
 					pos: attachedPartObj.position.toArray(),
 					rot: attachedPartObj.rotation.toArray(),
 				});
-
-				const attachedPart = attachedPartObj.userData;
-				saveAttaced(attachedPart.id, attachedPart.attachedParts);
+				saveAttaced(attachedPartObj.userData.attachedParts);
 			});
 		}
 

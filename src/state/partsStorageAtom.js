@@ -34,8 +34,8 @@ const otherSide = (side) => {
 		return side;
 	}
 };
-
-const initialState = { parts: [new Part({ id: 0, type: "fueltank", root: true })], selectedPart: null };
+//new Part({ id: 0, type: "fueltank", root: true })
+const initialState = { parts: [], selectedPart: null };
 
 const basePartsAtom = atom(loadPartsFromStorage());
 
@@ -67,7 +67,7 @@ export default atom(
 			},
 			addPart: (prop) => {
 				const parts = newState.parts;
-				const newID = Math.max(0, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
+				const newID = Math.max(-1, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
 				let parameters = {};
 				if (typeof prop === "string") {
 					parameters = {
@@ -211,20 +211,6 @@ export default atom(
 					api.updPartProperties(part.id, {
 						shapeSegments: newShapeSegments,
 					});
-				});
-			},
-			deleteAttached: (id, id2) => {
-				const statePart = newState.parts.find((p) => p.id === id);
-				const newAttachedParts = statePart.attachedParts.filter((ap) => ap.id !== id2);
-				api.updPartProperties(id, {
-					attachedParts: newAttachedParts,
-				});
-			},
-			deleteAttachedTo: (id, id2) => {
-				const statePart = newState.parts.find((p) => p.id === id);
-				const newAttachedToParts = statePart.attachedToParts.filter((ap) => ap.id !== id2);
-				api.updPartProperties(id, {
-					attachedToParts: newAttachedToParts,
 				});
 			},
 			todo: (tasks) => {
