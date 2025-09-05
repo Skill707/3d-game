@@ -3,27 +3,31 @@ import { useEffect, useRef } from "react";
 import { settingsAtom } from "../state/atoms";
 import { CreatePart } from "../utils/partFactory";
 import { useDragControls } from "../hooks/useDragControls";
-import { TransformControls } from "@react-three/drei";
-import { useThree } from "@react-three/fiber";
 import partsStorageAtom from "../state/partsStorageAtom";
-import { saveTransformation } from "../utils/transformUtils";
 import useMouseControls from "../hooks/useMouseControls";
+import { euler, quat, RigidBody, vec3 } from "@react-three/rapier";
+import { useFrame } from "@react-three/fiber";
+import { useKeyboardControls } from "@react-three/drei";
+import { applyLocalForce, applyLocalTorque } from "../utils/transformUtils";
 
-const Craft = ({ orbit, editor = true }) => {
+export const Craft = ({ orbitControlsRef, editor = true }) => {
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
-	const { scene } = useThree();
+	const craftGroupRef = useRef(null);
+	const rigidBodyRef = useRef(null);
+	const craftControlsRef = useRef({ pitch: 0, roll: 0, yaw: 0, throttle: 0 });
+	const [sub, get] = useKeyboardControls();
 
 	const dragControlsRef = useDragControls(
 		(editor && settingsStorage.activeSubToolId === "MOVE") || settingsStorage.activeSubToolId === "RESHAPE",
-		orbit,
+		orbitControlsRef,
 		partsStorage,
 		partsStorageAPI,
 		lastAddedRef,
 		settingsStorage
 	);
-	useMouseControls(editor, partsStorage, partsStorageAPI, settingsStorage, orbit);
+	useMouseControls(editor, partsStorage, partsStorageAPI, settingsStorage, orbitControlsRef);
 
 	useEffect(() => {
 		if (settingsStorage.addParts.selectedPartType !== null && settingsStorage.addParts.pointerOut === true) {
@@ -31,69 +35,88 @@ const Craft = ({ orbit, editor = true }) => {
 				api.addPart(settingsStorage.addParts.selectedPartType);
 				api.commit();
 			});
-			console.log(changes);
 			lastAddedRef.current = "dragPart" + changes[0].id;
+			setSettingsStorage((prev) => ({
+				...prev,
+				addParts: {
+					...prev.addParts,
+					selectedPartType: null,
+				},
+			}));
 		}
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [settingsStorage.addParts]);
 
-	const modesReg = {
-		TRANSLATE: "translate",
-		ROTATE: "rotate",
-	};
+	useEffect(() => {
+		rigidBodyRef.current.setTranslation(vec3({ x: 0, y: 5, z: 0 }), true);
+		rigidBodyRef.current.setRotation(quat({ x: 0, y: 0, z: 0, w: 1 }), true);
+		craftGroupRef.current.position.set(0, -5, 0);
+		console.log("reset", craftGroupRef.current);
+	}, [editor]);
 
-	const transformControlsRef = useRef(null);
-	const transformControlsMode = modesReg[settingsStorage.activeSubToolId];
-	let transformObject = null;
-	const objects = scene.children.filter((obj) => obj.name.includes("dragPart"));
-	if (partsStorage.selectedPart) {
-		transformObject = objects.find((o) => o.name === partsStorage.selectedPart.objectName);
-	}
-	const handleEndTransform = () => {
-		if (transformObject) {
-			saveTransformation(
-				partsStorageAPI,
-				transformObject,
-				objects,
-				null,
-				settingsStorage.move.autoResizeParts,
-				settingsStorage[transformControlsMode].mode
-			);
+	useFrame((state, delta) => {
+		if (editor) return
+		if (orbitControlsRef.current && rigidBodyRef.current) {
+			const position = vec3(rigidBodyRef.current.translation());
+			const quaternion = quat(rigidBodyRef.current.rotation());
+			const eulerRot = euler().setFromQuaternion(quat(rigidBodyRef.current.rotation()));
+
+			orbitControlsRef.current.target.lerp(position, 0.1);
+			orbitControlsRef.current.update();
+
+			craftControlsRef.current = {
+				pitch: 0,
+				roll: 0,
+				yaw: 0,
+				throttle: 0,
+			};
+
+			const actions = {
+				pitchUp: () => (craftControlsRef.current.pitch = -1),
+				pitchDown: () => (craftControlsRef.current.pitch = 1),
+				rollLeft: () => (craftControlsRef.current.roll = -1),
+				rollRight: () => (craftControlsRef.current.roll = 1),
+				yawLeft: () => (craftControlsRef.current.yaw = 1),
+				yawRight: () => (craftControlsRef.current.yaw = -1),
+				throttleUp: () => (craftControlsRef.current.throttle = 1),
+				throttleDown: () => (craftControlsRef.current.throttle = 0),
+			};
+
+			for (const [name, value] of Object.entries(get())) {
+				if (value) actions[name]();
+			}
+
+			const { pitch, roll, yaw, throttle } = craftControlsRef.current;
+			const torque = 2;
+			applyLocalTorque(rigidBodyRef.current, { x: pitch * torque, y: yaw * torque, z: roll * torque });
+
+			const mass = rigidBodyRef.current.mass();
+			//console.log(mass, rigidBodyRef.current.localCom());
+			const gravity = 9.81;
+			const weight = mass * gravity;
+			// Сила, компенсирующая вес
+			const forceUp = { x: 0, y: weight, z: weight * 1.5 * throttle };
+
+			applyLocalForce(rigidBodyRef.current, forceUp, delta);
 		}
-	};
-	const rad2deg = (value) => value * (180 / Math.PI);
-	const deg2rad = (value) => (value * Math.PI) / 180;
+	});
 
 	return (
-		<>
-			{partsStorage.parts.map((part) => (
-				<CreatePart key={part.id} part={part} selected={part.id === partsStorage.selectedPart?.id} editor={editor} />
-			))}
-			{editor && transformControlsMode && transformObject && (
-				<TransformControls
-					enabled={true}
-					ref={transformControlsRef}
-					object={transformObject}
-					onObjectChange={(e) => {
-						handleEndTransform();
-					}}
-					onChange={(e) => {
-						//console.log("enter", e);
-					}}
-					mode={transformControlsMode}
-					rotationSnap={deg2rad(settingsStorage.rotate.angleStep)}
-					translationSnap={settingsStorage.translate.gridSize}
-					space={
-						transformControlsMode === "translate"
-							? settingsStorage.translate.direction.toLocaleLowerCase()
-							: settingsStorage.rotate.direction.toLocaleLowerCase()
-					}
-					size={transformObject.userData.shapeSegments.center.length * 0.2}
-				/>
-			)}
-		</>
+		<RigidBody
+			name="craftRigidBody"
+			ref={rigidBodyRef}
+			colliders={false}
+			type={editor ? "fixed" : "dynamic"}
+			onContactForce={(payload) => {
+				console.log(`The total force generated was: ${payload.totalForce}`, payload);
+			}}
+		>
+			<group ref={craftGroupRef} name="craft">
+				{partsStorage.parts.map((part) => (
+					<CreatePart key={part.id} part={part} selected={part.id === partsStorage.selectedPart?.id} editor={editor} />
+				))}
+			</group>
+		</RigidBody>
 	);
 };
-
-export default Craft;

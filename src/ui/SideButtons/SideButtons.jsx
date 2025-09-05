@@ -18,7 +18,7 @@ export function SideButtons() {
 			<div
 				id="game-icon"
 				onClick={() => {
-					setScene("game");
+					setScene(scene === "editor" ? "game" : "editor");
 				}}
 			>
 				<GameIcon style={{ color: "#fff", fontSize: 36 }} />

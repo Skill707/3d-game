@@ -1,5 +1,4 @@
 //import { DragControls } from "three/examples/jsm/Addons.js";
-import * as THREE from "three";
 import { DragControls } from "../utils/MyDragControls.js";
 import { attachPart, moveAttached, saveTransformation } from "./transformUtils.js";
 

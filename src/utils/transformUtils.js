@@ -89,6 +89,7 @@ export function attachPart(selectedObject, hit) {
 
 	const hitPart = hitGroupObject.userData;
 	const selectedPart = selectedObject.userData;
+	const connectionType = selectedPart.shapeSegments.connectionType;
 	let finalPosition = point.clone();
 	let finalQuat = new THREE.Quaternion();
 
@@ -111,26 +112,33 @@ export function attachPart(selectedObject, hit) {
 	}
 	const forward = new THREE.Vector3().crossVectors(right, normal).normalize();
 
-	// 6. Смещение по высоте (пример для "side")
-	if (attachTo === "side") {
-		// Собираем новую матрицу
-		const finalMatrix = new THREE.Matrix4().makeBasis(forward, normal, right.clone().negate());
+	if (connectionType === "wing") {
+		const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments.back.pos);
+		const finalMatrix = new THREE.Matrix4().makeBasis(right.clone(), forward.clone(), normal.clone().negate());
 		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-		const centerHeight = (selectedPart.shapeSegments.front.height + selectedPart.shapeSegments.back.height) / 4;
-		const offset = new THREE.Vector3(0, -centerHeight, 0).applyQuaternion(finalQuat);
-		finalPosition.sub(offset);
-	} else if (attachTo === "front" || attachTo === "back") {
-		// локальные центры граней
-		const pHit = new THREE.Vector3().fromArray(hitPart.shapeSegments[attachTo].pos);
-		const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments[otherSide(attachTo)].pos);
-		// мировая точка центра грани базовой детали
-		finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
-		// итоговый поворот выбранной детали
-		const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone().negate(), normal.clone().negate());
-		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-		// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
-		const offsetSel = pSel.clone().applyQuaternion(finalQuat);
-		finalPosition.sub(offsetSel);
+		finalPosition = point.clone().add(pSel.clone().applyQuaternion(finalQuat));
+	} else {
+		if (attachTo === "side") {
+			finalPosition = point.clone();
+			// Собираем новую матрицу
+			const finalMatrix = new THREE.Matrix4().makeBasis(forward, normal, right.clone().negate());
+			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+			const centerHeight = (selectedPart.shapeSegments.front.height + selectedPart.shapeSegments.back.height) / 4;
+			const offset = new THREE.Vector3(0, -centerHeight, 0).applyQuaternion(finalQuat);
+			finalPosition.sub(offset);
+		} else if (attachTo === "front" || attachTo === "back") {
+			// локальные центры граней
+			const pHit = new THREE.Vector3().fromArray(hitPart.shapeSegments[attachTo].pos);
+			const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments[otherSide(attachTo)].pos);
+			// мировая точка центра грани базовой детали
+			finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
+			// итоговый поворот выбранной детали
+			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone().negate(), normal.clone().negate());
+			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
+			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
+			finalPosition.sub(offsetSel);
+		}
 	}
 	const finalRotation = new THREE.Euler().setFromQuaternion(finalQuat);
 	return { position: finalPosition, rotation: finalRotation };
@@ -276,6 +284,39 @@ export function localRotDelta(rotateDelta, rot) {
 	const newEuler = new THREE.Euler().setFromQuaternion(q, rot[3]);
 	return newEuler.toArray();
 }
+
+export function applyLocalForce(rb, force, dt = 1 / 60) {
+	if (!rb) return;
+	const q = rb.rotation();
+	const quat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+
+	const impulse = {
+		x: force.x * dt,
+		y: force.y * dt,
+		z: force.z * dt,
+	};
+
+	const local = new THREE.Vector3(impulse.x, impulse.y, impulse.z);
+	const world = local.applyQuaternion(quat);
+
+	rb.applyImpulse(world, true);
+}
+
+export function applyLocalTorque(rb, localTorque, wake = true) {
+	if (!rb) return;
+
+	// Берём мировую ориентацию тела
+	const q = rb.rotation();
+	const quat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+
+	// Переводим локальный вектор в мировой
+	const local = new THREE.Vector3(localTorque.x, localTorque.y, localTorque.z);
+	const world = local.applyQuaternion(quat);
+
+	// Применяем как обычный torque
+	rb.applyTorqueImpulse(world, wake);
+}
+
 /*
 , handleClickPart, handleStartDragPart, handleCopyPart, handleEndDragPart 
 	const euler = new THREE.Euler().fromArray(part.rot);

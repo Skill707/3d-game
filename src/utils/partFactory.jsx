@@ -41,6 +41,7 @@ export class shapeSegments {
 		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length / 2 || -1], closed: parameters.closed });
 		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, angle: 0 };
 		this.doubleSided = parameters.doubleSided || false;
+		this.connectionType = parameters.connectionType || "block";
 	}
 }
 
@@ -65,6 +66,8 @@ const fueltankShape = new shapeSegments({
 const wingShape = new shapeSegments({
 	shapeName: "airfoil",
 	closed: true,
+	length: 6,
+	connectionType: "wing",
 });
 
 // eslint-disable-next-line react-refresh/only-export-components

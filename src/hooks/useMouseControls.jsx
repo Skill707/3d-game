@@ -18,10 +18,11 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 	function findGroup(obj, group = null) {
 		if (obj.isGroup) group = obj;
 
-		if (obj.parent === null) return group;
+		if (obj.parent === null || obj.parent.name === "craft") return group;
 
 		return findGroup(obj.parent, group);
 	}
+
 	function raycast() {
 		const intersections = [];
 		raycaster.setFromCamera(pointer, camera);
@@ -38,6 +39,7 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 			const hits = raycast();
 			if (hits.length > 0) {
 				selected = findGroup(hits[0].object);
+
 				if (selected && event.button === 0) {
 					orbit.current.enabled = false;
 					if (settingsStorage.activeSubToolId !== "PAINT") {
@@ -46,8 +48,6 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 							api.commit();
 						});
 					} else {
-						console.log(settingsStorage.paint.selected);
-
 						partsStorageAPI((api) => {
 							api.updPartProperties(selected.userData.id, { color: settingsStorage.paint.selected });
 							api.commit();
@@ -63,7 +63,6 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 		}
 
 		function onDoubleClick(event) {
-			console.log("doubleclick", event);
 			updatePointer(event);
 
 			const intersections = [];
@@ -73,7 +72,6 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 			if (hits.length > 0) {
 				const hit = hits[0];
 				selected = findGroup(hit.object);
-				console.log("extend segment", hit.object.userData, selected);
 			}
 		}
 

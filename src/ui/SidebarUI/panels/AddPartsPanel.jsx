@@ -15,12 +15,24 @@ const panelVariants = {
 export function AddPartsPanel({ partIcons, onClose }) {
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 
-	const handleSelectPart = (type, e) => {
-		setSettingsStorage(
-			produce((draft) => {
-				draft.addParts.selectedPartType = type;
-			})
-		);
+	const handleSelectPart = (type) => {
+		setSettingsStorage((prev) => ({
+			...prev,
+			addParts: {
+				...prev.addParts,
+				selectedPartType: type,
+			},
+		}));
+	};
+
+	const handlePointerOut = (state) => {
+		setSettingsStorage((prev) => ({
+			...prev,
+			addParts: {
+				...prev.addParts,
+				pointerOut: state,
+			},
+		}));
 	};
 
 	return (
@@ -30,23 +42,12 @@ export function AddPartsPanel({ partIcons, onClose }) {
 			initial="hidden"
 			animate="visible"
 			exit="exit"
-			onPointerEnter={() => {
-				setSettingsStorage(
-					produce((draft) => {
-						draft.addParts.pointerOut = false;
-						draft.addParts.selectedPartType = null;
-					})
-				);
-			}}
+			onPointerEnter={() => handlePointerOut(false)}
 			onPointerLeave={() => {
-				setSettingsStorage(
-					produce((draft) => {
-						draft.addParts.pointerOut = true;
-					})
-				);
+				handlePointerOut(true);
 				settingsStorage.addParts.selectedPartType && onClose();
 			}}
-			onPointerUp={(e) => handleSelectPart(null, e)}
+			onPointerUp={(e) => handleSelectPart(null)}
 		>
 			<Paper className="panel-content">
 				<Box className="panel-header">
@@ -66,8 +67,8 @@ export function AddPartsPanel({ partIcons, onClose }) {
 									className="part-item"
 									tabIndex={0}
 									aria-label={`Add ${part.name}`}
-									onMouseDown={(e) => handleSelectPart(part.type, e)}
-									onTouchStart={(e) => handleSelectPart(part.type, e)}
+									onMouseDown={() => handleSelectPart(part.type)}
+									onTouchStart={() => handleSelectPart(part.type)}
 									whileHover={{ y: -4, transition: { duration: 0.2 } }}
 								>
 									<Box className="part-image-placeholder">{part.icon}</Box>

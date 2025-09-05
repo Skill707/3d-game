@@ -90,9 +90,7 @@ export function SidebarUI() {
 	const handlePanelToggle = (panelId) => {
 		setActivePanel((current) => (current === panelId ? null : panelId));
 		if (panelId !== "DESIGNER") {
-			setSettingsStorage((prev) => {
-				return { ...prev, activeSubToolId: "MOVE" };
-			});
+			setSettingsStorage((prev) => ({ ...prev, activeSubToolId: "MOVE" }));
 		}
 	};
 

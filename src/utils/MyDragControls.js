@@ -268,7 +268,7 @@ function onContextMenu(event) {
 function findGroup(obj, group = null) {
 	if (obj.isGroup) group = obj;
 
-	if (obj.parent === null) return group;
+	if (obj.parent === null || obj.parent.name === "craft") return group;
 
 	return findGroup(obj.parent, group);
 }
