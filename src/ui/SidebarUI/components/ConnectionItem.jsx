@@ -9,7 +9,7 @@ const ConnectionTypeIcon = ({ type }) => {
 			return <FuelIcon sx={{ fontSize: "1.2rem", color: "var(--icon-color)" }} />;
 		case "front":
 			return <div className="connection-icon-shape square" />;
-		case "back":
+		case "rear":
 			return <div className="connection-icon-shape triangle" />;
 		default:
 			return null;

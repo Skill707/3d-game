@@ -1,4 +1,5 @@
 import { Controls, Matrix4, Plane, Raycaster, Vector2, Vector3, MOUSE, TOUCH } from "three";
+import { Part } from "./partFactory";
 
 const _plane = new Plane();
 
@@ -140,14 +141,16 @@ function raycast() {
 
 	objects = objects.filter((o) => {
 		if (this.selected) {
-			const find = this.selected.userData.attachedParts.find((ap) => ap.id === o.userData.id);
+			const part = this.selected.userData instanceof Part && this.selected.userData;
+			console.log(part);
+			const find = part.attachedParts.find((ap) => ap.id === o.userData.id);
 			//console.log("find", find);
 			return find === undefined;
 		}
 		return true;
 	});
 	this.raycaster.intersectObjects(objects, true, intersections);
-	const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("back") || i.object.name.includes("side"));
+	const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("rear") || i.object.name.includes("side"));
 	return hits;
 }
 

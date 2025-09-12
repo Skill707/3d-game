@@ -61,8 +61,8 @@ export function DesignerPanel({
 	selectedPart,
 	handleChangeSegmentProperties,
 	settingsStorage,
-	setSettingsStorage,
-	handleMovePart,
+	handleSettingChange,
+	handleTranslatePart,
 	handlePrevPart,
 	handleNextPart,
 	handleChangeCenterProperties,
@@ -71,48 +71,30 @@ export function DesignerPanel({
 	handleClickAttached,
 	handleColorChange,
 }) {
+	console.log(selectedPart);
+
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [selectedSection, selectSection] = useState("center");
 
-	const toolSettings = settingsStorage;
-
 	const deg2rad = (value) => (value * Math.PI) / 180;
 	const rad2deg = (value) => value * (180 / Math.PI);
-
-	const handleSettingChange = (tool) => (field) => (newValue) => {
-		setSettingsStorage((prev) => ({
-			...prev,
-			[tool]: {
-				...prev[tool],
-				[field]: newValue,
-			},
-		}));
-	};
 
 	const handlePropertiesChange = (field) => (newValue) => {
 		if (selectedSection === "center") {
 			let newProps;
 			if (field === "length" || field === "zOffset" || field === "xOffset") {
-				const segments = selectedPart.shapeSegments;
-				newProps = {
-					length: segments.center.length,
-					zOffset: segments.center.zOffset,
-					xOffset: segments.center.xOffset,
-					[field]: newValue,
-				};
+				let offset = selectedPart.fuselage.offset;
+				offset[field === "length" ? 2 : field === "zOffset" ? 1 : 0] = newValue;
+				newProps = { offset };
 			} else {
 				newProps = { [field]: newValue };
 			}
 			handleChangeCenterProperties(newProps);
-		} else if (selectedSection === "front" || selectedSection === "back") {
+		} else if (selectedSection === "front" || selectedSection === "rear") {
 			let newProps;
 			if (field === "corners") {
 				newProps = {
-					corners: newValue,
-					corner1: newValue,
-					corner2: newValue,
-					corner3: newValue,
-					corner4: newValue,
+					corners: new Array(4).fill(newValue / 100),
 				};
 			} else {
 				newProps = { [field]: newValue };
@@ -128,25 +110,23 @@ export function DesignerPanel({
 			yPos: 1,
 			zPos: 2,
 		};
-		if (pos[field] !== undefined) posDelta[pos[field]] += newValue - selectedPart.pos[pos[field]];
+		if (pos[field] !== undefined) posDelta[pos[field]] += newValue - selectedPart.position[pos[field]];
 
 		if (settingsStorage.translate.direction === "Local") {
-			handleMovePart(localPosDelta(posDelta, selectedPart.rot));
+			handleTranslatePart(localPosDelta(posDelta, selectedPart.rotation));
 		} else {
-			handleMovePart(posDelta);
+			handleTranslatePart(posDelta);
 		}
 	};
 
 	const handleRotateChange = (field) => (newValue) => {
 		let rotDelta = [0, 0, 0];
-
 		const rot = {
 			xAngle: 0,
 			yAngle: 1,
 			zAngle: 2,
 		};
-
-		if (rot[field] !== undefined) rotDelta[rot[field]] += deg2rad(newValue - rad2deg(selectedPart.rot[rot[field]]));
+		if (rot[field] !== undefined) rotDelta[rot[field]] += deg2rad(newValue - rad2deg(selectedPart.rotation[rot[field]]));
 
 		handleRotatePart(rotDelta);
 	};
@@ -172,11 +152,10 @@ export function DesignerPanel({
 				</Box>
 			);
 		}
-		const segments = selectedPart?.shapeSegments;
 
 		switch (activeSubToolId) {
 			case "MOVE": {
-				const settings = toolSettings.move;
+				const settings = settingsStorage.move;
 				const handleChange = handleSettingChange("move");
 				return (
 					<>
@@ -199,7 +178,7 @@ export function DesignerPanel({
 				);
 			}
 			case "TRANSLATE": {
-				const settings = toolSettings.translate;
+				const settings = settingsStorage.translate;
 				const handleChange = handleSettingChange("translate");
 				return (
 					<>
@@ -210,7 +189,7 @@ export function DesignerPanel({
 						<h3 className="tool-sub-header">POSITION</h3>
 						<NumericStepper
 							label="X-Pos"
-							value={selectedPart.pos[0]}
+							value={selectedPart.position[0]}
 							onChange={handleTranslateChange("xPos")}
 							step={settings.gridSize}
 							precision={3}
@@ -218,7 +197,7 @@ export function DesignerPanel({
 						/>
 						<NumericStepper
 							label="Y-Pos"
-							value={selectedPart.pos[1]}
+							value={selectedPart.position[1]}
 							onChange={handleTranslateChange("yPos")}
 							step={settings.gridSize}
 							precision={3}
@@ -226,7 +205,7 @@ export function DesignerPanel({
 						/>
 						<NumericStepper
 							label="Z-Pos"
-							value={selectedPart.pos[2]}
+							value={selectedPart.position[2]}
 							onChange={handleTranslateChange("zPos")}
 							step={settings.gridSize}
 							precision={3}
@@ -236,7 +215,7 @@ export function DesignerPanel({
 				);
 			}
 			case "ROTATE": {
-				const settings = toolSettings.rotate;
+				const settings = settingsStorage.rotate;
 				const handleChange = handleSettingChange("rotate");
 				return (
 					<>
@@ -256,7 +235,7 @@ export function DesignerPanel({
 						<h3 className="tool-sub-header">ROTATION</h3>
 						<NumericStepper
 							label="X-Angle"
-							value={rad2deg(selectedPart.rot[0])}
+							value={rad2deg(selectedPart.rotation[0])}
 							onChange={handleRotateChange("xAngle")}
 							step={settings.angleStep}
 							precision={0}
@@ -264,7 +243,7 @@ export function DesignerPanel({
 						/>
 						<NumericStepper
 							label="Y-Angle"
-							value={rad2deg(selectedPart.rot[1])}
+							value={rad2deg(selectedPart.rotation[1])}
 							onChange={handleRotateChange("yAngle")}
 							step={settings.angleStep}
 							precision={0}
@@ -272,7 +251,7 @@ export function DesignerPanel({
 						/>
 						<NumericStepper
 							label="Z-Angle"
-							value={rad2deg(selectedPart.rot[2])}
+							value={rad2deg(selectedPart.rotation[2])}
 							onChange={handleRotateChange("zAngle")}
 							step={settings.angleStep}
 							precision={0}
@@ -282,7 +261,10 @@ export function DesignerPanel({
 				);
 			}
 			case "RESHAPE": {
-				const settings = toolSettings.reshape;
+				const settings = settingsStorage.reshape;
+				const fuselage = selectedPart.fuselage;
+				if (!fuselage) return null;
+				const segment = fuselage[selectedSection];
 				const handleChange = handleSettingChange("reshape");
 				return (
 					<>
@@ -295,11 +277,11 @@ export function DesignerPanel({
 						/>
 						<hr className="tool-separator" />
 
-						{selectedSection === "center" && (
+						{selectedSection === "center" ? (
 							<>
 								<NumericStepper
 									label="Length"
-									value={segments.center.length}
+									value={fuselage.offset[2]}
 									onChange={handlePropertiesChange("length")}
 									step={settings.gridSize}
 									precision={2}
@@ -308,7 +290,7 @@ export function DesignerPanel({
 								/>
 								<NumericStepper
 									label="X-Offset"
-									value={segments.center.xOffset}
+									value={fuselage.offset[0]}
 									onChange={handlePropertiesChange("xOffset")}
 									step={settings.gridSize}
 									precision={2}
@@ -317,7 +299,7 @@ export function DesignerPanel({
 								/>
 								<NumericStepper
 									label="Z-Offset"
-									value={segments.center.zOffset}
+									value={fuselage.offset[1]}
 									onChange={handlePropertiesChange("zOffset")}
 									step={settings.gridSize}
 									precision={2}
@@ -326,35 +308,33 @@ export function DesignerPanel({
 								/>
 								<SensitivitySlider
 									label="Pinch X"
-									value={segments.center.pinchX}
+									value={fuselage.pinchXAvg}
 									onChange={handlePropertiesChange("pinchX")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Pinch Y"
-									value={segments.center.pinchY}
+									value={fuselage.pinchYAvg}
 									onChange={handlePropertiesChange("pinchY")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Angle"
-									value={segments.center.angle}
+									value={fuselage.angleAvg}
 									onChange={handlePropertiesChange("angle")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 							</>
-						)}
-
-						{selectedSection !== "center" && (
+						) : (
 							<>
 								<NumericStepper
 									label="Points"
-									value={segments[selectedSection].pointsCount}
+									value={segment.pointsCount}
 									onChange={handlePropertiesChange("pointsCount")}
-									step={segments[selectedSection].pointsCount * 1.06}
+									step={segment.pointsCount * 1.06}
 									precision={0}
 									min={4}
 									max={32}
@@ -362,7 +342,7 @@ export function DesignerPanel({
 								/>
 								<NumericStepper
 									label="Width"
-									value={segments[selectedSection].width}
+									value={segment.scale[0]}
 									onChange={handlePropertiesChange("width")}
 									step={settings.gridSize}
 									precision={2}
@@ -370,70 +350,52 @@ export function DesignerPanel({
 								/>
 								<NumericStepper
 									label="Height"
-									value={segments[selectedSection].height}
+									value={segment.scale[1]}
 									onChange={handlePropertiesChange("height")}
 									step={settings.gridSize}
 									precision={2}
 									min={0}
 								/>
-								<SensitivitySlider
-									label="Corner Radius"
-									value={segments[selectedSection].corners}
-									onChange={handlePropertiesChange("corners")}
-								/>
-								<SensitivitySlider label="Corner 1" value={segments[selectedSection].corner1} onChange={handlePropertiesChange("corner1")} />
-								<SensitivitySlider label="Corner 2" value={segments[selectedSection].corner2} onChange={handlePropertiesChange("corner2")} />
-								<SensitivitySlider label="Corner 3" value={segments[selectedSection].corner3} onChange={handlePropertiesChange("corner3")} />
-								<SensitivitySlider label="Corner 4" value={segments[selectedSection].corner4} onChange={handlePropertiesChange("corner4")} />
+								<SensitivitySlider label="Corner Radius" value={segment.cornersAvg * 100} onChange={handlePropertiesChange("corners")} />
+
+								{segment.corners.map((c, i) => (
+									<SensitivitySlider key={i} label={`Corner ${i + 1}`} value={c * 100} onChange={handlePropertiesChange(`corner${i + 1}`)} />
+								))}
+
+								{segment.clamps.map((c, i) => (
+									<SensitivitySlider
+										key={i}
+										label={`Clamp ${i + 1}`}
+										value={c * 100}
+										onChange={handlePropertiesChange(`clamp${i}`)}
+										displayTransformer={(v) => (v === 0 ? "None" : `${v}%` + 1)}
+									/>
+								))}
 
 								<SensitivitySlider
-									label="Clamp 1"
-									value={segments[selectedSection].clamp1}
-									onChange={handlePropertiesChange("clamp1")}
-									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
-								/>
-								<SensitivitySlider
-									label="Clamp 2"
-									value={segments[selectedSection].clamp2}
-									onChange={handlePropertiesChange("clamp2")}
-									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
-								/>
-								<SensitivitySlider
-									label="Clamp 3"
-									value={segments[selectedSection].clamp3}
-									onChange={handlePropertiesChange("clamp3")}
-									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
-								/>
-								<SensitivitySlider
-									label="Clamp 4"
-									value={segments[selectedSection].clamp4}
-									onChange={handlePropertiesChange("clamp4")}
-									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
-								/>
-								<SensitivitySlider
 									label="Pinch X"
-									value={segments[selectedSection].pinchX}
+									value={segment.pinchX}
 									onChange={handlePropertiesChange("pinchX")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Pinch Y"
-									value={segments[selectedSection].pinchY}
+									value={segment.pinchY}
 									onChange={handlePropertiesChange("pinchY")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Slant"
-									value={segments[selectedSection].slant}
+									value={segment.slant}
 									onChange={handlePropertiesChange("slant")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Angle"
-									value={segments[selectedSection].angle}
+									value={segment.angle}
 									onChange={handlePropertiesChange("angle")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
@@ -444,7 +406,7 @@ export function DesignerPanel({
 				);
 			}
 			case "PAINT": {
-				const settings = toolSettings.paint;
+				const settings = settingsStorage.paint;
 				const handleChange = handleSettingChange("paint");
 				return (
 					<>
@@ -460,7 +422,7 @@ export function DesignerPanel({
 				);
 			}
 			case "CONNECTIONS": {
-				//const { partName, attachPoints } = toolSettings.connections;
+				//const { partName, attachPoints } = settingsStorage.connections;
 				return (
 					<>
 						<h3 className="connection-part-name">{selectedPart.name}</h3>

@@ -2,14 +2,15 @@ import { atom } from "jotai";
 import { generatePoints, Part } from "../utils/partFactory";
 import { getOffsetMatrix } from "../utils/transformUtils";
 
+const initialState = { parts: [new Part({ id: 0, partType: "fuselage", root: true })], selectedPart: null, lastUpdate: new Date().getTime() };
+
 const loadPartsFromStorage = () => {
 	try {
 		const stored = localStorage.getItem("craftParts");
-
 		if (stored && stored != undefined) {
-			let partsStorage = JSON.parse(stored);
-			partsStorage.selectedPart = null;
-			return partsStorage;
+			let parsedParts = JSON.parse(stored);
+			const parts = parsedParts.parts.map((p) => new Part(p));
+			return { ...initialState, parts: parts };
 		}
 	} catch (e) {
 		console.error("Error loading parts from localStorage:", e);
@@ -27,44 +28,38 @@ function updateShapeSegmentProperties(segment, newProperties) {
 
 const otherSide = (side) => {
 	if (side === "front") {
-		return "back";
-	} else if (side === "back") {
+		return "rear";
+	} else if (side === "rear") {
 		return "front";
 	} else {
 		return side;
 	}
 };
-//new Part({ id: 0, type: "fueltank", root: true })
-const initialState = { parts: [], selectedPart: null };
 
 const basePartsAtom = atom(loadPartsFromStorage());
 
 export default atom(
 	(get) => get(basePartsAtom),
 	(get, set, update) => {
-		let newState = structuredClone(get(basePartsAtom));
+		//let newState = structuredClone(get(basePartsAtom));
+		let prev = get(basePartsAtom);
+		let newState = { ...prev, lastUpdate: Date.now() };
+		newState.lastUpdate = new Date().getTime();
 		let updatedParts = [];
 
 		/**
 		 * API для управления частями.
 		 * @typedef {Object} PartsAPI
 		 * @property {(type: string|object) => Part} addPart Добавляет новую деталь, делает её выбранной и возвращает её.
-		 * @property {(objectName: string) => Part|null} selectObjectName Выбирает часть по имени объекта.
-		 * @property {(id: number) => Part|null} selectPartID Выбирает часть по ID.
+		 * @property {(prop: number|Part|string) => void} selectPart Выбирает часть по ID.
 		 * @property {() => void} commit Применяет все изменения в состояние.
 		 */
 
 		/** @type {PartsAPI} */
 		const api = {
-			restart: () => {
-				set(basePartsAtom, initialState);
-			},
-			loadCraft: () => {
-				set(basePartsAtom, loadPartsFromStorage());
-			},
-			saveCraft: () => {
-				localStorage.setItem("craftParts", JSON.stringify(newState));
-			},
+			restart: () => set(basePartsAtom, initialState),
+			loadCraft: () => set(basePartsAtom, loadPartsFromStorage()),
+			saveCraft: () => localStorage.setItem("craftParts", JSON.stringify(newState.parts)),
 			addPart: (prop) => {
 				const parts = newState.parts;
 				const newID = Math.max(-1, ...parts.map((p) => p.id)) + 1; // Генерируем уникальный ID
@@ -72,7 +67,7 @@ export default atom(
 				if (typeof prop === "string") {
 					parameters = {
 						id: newID,
-						type: prop,
+						partType: prop,
 					};
 				} else if (typeof prop === "object") {
 					parameters = { ...prop, id: newID };
@@ -83,15 +78,18 @@ export default atom(
 				newState.selectedPart = newPart;
 				return newPart;
 			},
-			selectObjectName: (objectName) => {
-				const selectedPart = newState.parts.find((p) => p.objectName === objectName) || null;
-				newState.selectedPart = selectedPart;
-				return selectedPart;
-			},
-			selectPartID: (id) => {
-				const selectedPart = newState.parts.find((p) => p.id === id) || null;
-				newState.selectedPart = selectedPart;
-				return selectedPart;
+			selectPart: (prop) => {
+				if (typeof prop === "string") {
+					const selectedPart = newState.parts.find((p) => p.editor.objectName === prop) || null;
+					newState.selectedPart = selectedPart;
+				} else if (prop instanceof Part) {
+					newState.selectedPart = prop;
+				} else if (typeof prop === "number") {
+					const selectedPart = newState.parts.find((p) => p.id === prop) || null;
+					newState.selectedPart = selectedPart;
+				} else {
+					newState.selectedPart = null;
+				}
 			},
 			updPartProperties: (id, properties) => {
 				let updatedPart = null;
@@ -109,33 +107,6 @@ export default atom(
 				newState.parts = newState.parts.map((part) => {
 					list.forEach((element, index) => {
 						if (part.id === element.id) {
-							if (element.pushTo) {
-								for (let propertieName in element.pushTo) {
-									const value = element.pushTo[propertieName];
-									if (Array.isArray(value)) {
-										value.forEach((arrElement) => {
-											part = { ...part, ...part[propertieName].push(arrElement) };
-										});
-									} else {
-										part = { ...part, ...part[propertieName].push(value) };
-									}
-								}
-							} else if (element.filterByID) {
-								for (let propertieName in element.filterByID) {
-									const value = element.filterByID[propertieName];
-									if (Array.isArray(value)) {
-										value.forEach((arrElement) => {
-											const filtered = part[propertieName].filter((f) => arrElement.id !== f.id);
-											part = { ...part, [propertieName]: filtered };
-										});
-									} else {
-										const filtered = part[propertieName].filter((f) => value.id !== f.id);
-										part = { ...part, [propertieName]: filtered };
-									}
-								}
-							} else if (element.properties) {
-								part = { ...part, ...element.properties };
-							}
 							list[index] = part;
 						}
 					});
@@ -168,31 +139,32 @@ export default atom(
 				];
 				return api.updPartListProps(list);
 			},
-			disconnectPart: (partID) => {
-				const statePart = newState.parts.find((p) => p.id === partID) || null;
-				const list = [];
-				statePart.attachedToParts.forEach((element) => {
-					list.push({ id: element.id, filterByID: { attachedParts: { id: partID } } });
+			disconnectPart: (part) => {
+				const list = part.editor.attachedParts;
+				newState.parts = newState.parts.map((p) => {
+					list.forEach((element, index) => {
+						if (p.id === element.id) p.removeAttachedPartByID(part.id);
+					});
+					if (p.id === part.id) p.clearAttachedToParts();
+					return p;
 				});
-				list.push({ id: partID, properties: { attachedToParts: [] } });
-				return api.updPartListProps(list);
 			},
 			translateParts: (list) => {
-				list.forEach((part) => {
-					const statePart = newState.parts.find((p) => p.id === part.id);
-					const newPos = [statePart.pos[0] + part.posDelta[0], statePart.pos[1] + part.posDelta[1], statePart.pos[2] + part.posDelta[2]];
-					api.updPartProperties(part.id, {
-						pos: newPos,
+				newState.parts = newState.parts.map((p) => {
+					list.forEach((element) => {
+						if (p.id === element.id)
+							p.position = [p.position[0] + element.posDelta[0], p.position[1] + element.posDelta[1], p.position[2] + element.posDelta[2]];
 					});
+					return p;
 				});
 			},
 			rotateParts: (list) => {
-				list.forEach((part) => {
-					const statePart = newState.parts.find((p) => p.id === part.id);
-					const newRot = [statePart.rot[0] + part.rotDelta[0], statePart.rot[1] + part.rotDelta[1], statePart.rot[2] + part.rotDelta[2]];
-					api.updPartProperties(part.id, {
-						rot: newRot,
+				newState.parts = newState.parts.map((p) => {
+					list.forEach((element) => {
+						if (p.id === element.id)
+							p.rotation = [p.rotation[0] + element.rotDelta[0], p.rotation[1] + element.rotDelta[1], p.rotation[2] + element.rotDelta[2]];
 					});
+					return p;
 				});
 			},
 			updShapeCenter: (id, newProperties) => {
@@ -204,21 +176,12 @@ export default atom(
 				});
 			},
 			updPartsSegmentNameProps: (list) => {
-				list.forEach((part) => {
-					const statePart = newState.parts.find((p) => p.id === part.id);
-					const newSegment = updateShapeSegmentProperties(statePart.shapeSegments[part.segmentName], part.newProperties);
-					const newShapeSegments = updateShapeSegment(statePart.shapeSegments, newSegment);
-					api.updPartProperties(part.id, {
-						shapeSegments: newShapeSegments,
+				newState.parts = newState.parts.map((p) => {
+					list.forEach((element) => {
+						if (p.id === element.id) p.updateSegmentProperties(element.segmentName, element.newProperties);
 					});
+					return p;
 				});
-			},
-			todo: (tasks) => {
-				for (const key in tasks) {
-					const value = tasks[key];
-					const ret = api[key](value);
-					//(key, "(", value, ")=>", ret);
-				}
 			},
 			commit: (state) => {
 				if (state) {

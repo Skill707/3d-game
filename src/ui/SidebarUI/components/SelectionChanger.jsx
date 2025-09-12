@@ -13,7 +13,7 @@ export function SelectionChanger({ label, handlePrevPart, handleSeclectSection, 
 				<IconButton className="selection-changer-btn" onClick={()=>handlePrevPart()} aria-label="Previous part">
 					P
 				</IconButton>
-				<IconButton className="selection-changer-btn" onClick={()=>handleSeclectSection("back")} aria-label="Back segment">
+				<IconButton className="selection-changer-btn" onClick={()=>handleSeclectSection("rear")} aria-label="Rear segment">
 					B
 				</IconButton>
 				<IconButton className="selection-changer-btn" onClick={()=>handleSeclectSection("center")} aria-label="Center section">

@@ -11,11 +11,11 @@ import { ViewOptionsPanel } from "./panels/ViewOptionsPanel";
 import { AnimatePresence } from "framer-motion";
 import { useAtom } from "jotai";
 import { settingsAtom } from "../../state/atoms";
-import { shapeRegistry } from "../../utils/partFactory";
 import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
 import { useKeyboardControls } from "@react-three/drei";
 import { localPosDelta } from "../../utils/transformUtils";
+import { partTypeRegistry } from "../../utils/partFactory";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -24,6 +24,7 @@ export function SidebarUI() {
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 
 	const selectedPart = partsStorage.selectedPart;
+
 	let activeSubToolId = settingsStorage.activeSubToolId;
 
 	const setActiveSubToolId = (id) => {
@@ -33,7 +34,7 @@ export function SidebarUI() {
 		});
 		if (id === "PAINT") {
 			partsStorageAPI((api) => {
-				api.selectPartID(null);
+				api.selectPart(null);
 				api.commit();
 			});
 		}
@@ -94,10 +95,20 @@ export function SidebarUI() {
 		}
 	};
 
-	const handleMovePart = (posDelta) => {
+	const handleSettingChange = (tool) => (field) => (newValue) => {
+		setSettingsStorage((prev) => ({
+			...prev,
+			[tool]: {
+				...prev[tool],
+				[field]: newValue,
+			},
+		}));
+	};
+
+	const handleTranslatePart = (posDelta) => {
 		partsStorageAPI((api) => {
 			api.translateParts([{ id: selectedPart.id, posDelta }]);
-			api.selectPartID(selectedPart.id);
+			api.selectPart(selectedPart.id);
 			api.commit();
 		});
 	};
@@ -105,15 +116,15 @@ export function SidebarUI() {
 	const handleRotatePart = (rotDelta) => {
 		partsStorageAPI((api) => {
 			api.rotateParts([{ id: selectedPart.id, rotDelta }]);
-			api.selectPartID(selectedPart.id);
+			api.selectPart(selectedPart.id);
 			api.commit();
 		});
 	};
 
 	const otherSide = (side) => {
 		if (side === "front") {
-			return "back";
-		} else if (side === "back") {
+			return "rear";
+		} else if (side === "rear") {
 			return "front";
 		} else {
 			return null;
@@ -134,7 +145,7 @@ export function SidebarUI() {
 
 		partsStorageAPI((api) => {
 			api.updPartsSegmentNameProps(list);
-			api.selectPartID(selectedPart.id);
+			api.selectPart(selectedPart.id);
 			api.commit();
 		});
 	};
@@ -185,16 +196,16 @@ export function SidebarUI() {
 			api.translateParts(translateList);
 			api.updShapeCenter(selectedPart.id, newProperties);
 			api.updPartsSegmentNameProps(list);
-			api.selectPartID(selectedPart.id);
+			api.selectPart(selectedPart.id);
 			api.commit();
 		});
 	};
 
 	const handlePrevPart = () => {
 		selectedPart.attachedParts.forEach((attachedPart) => {
-			if (attachedPart.place === "back") {
+			if (attachedPart.place === "rear") {
 				partsStorageAPI((api) => {
-					api.selectPartID(attachedPart.id);
+					api.selectPart(attachedPart.id);
 					api.commit();
 				});
 				return;
@@ -205,7 +216,7 @@ export function SidebarUI() {
 		selectedPart.attachedParts.forEach((attachedPart) => {
 			if (attachedPart.place === "front") {
 				partsStorageAPI((api) => {
-					api.selectPartID(attachedPart.id);
+					api.selectPart(attachedPart.id);
 					api.commit();
 				});
 			}
@@ -214,7 +225,7 @@ export function SidebarUI() {
 
 	const handleClickAttached = (apID) => {
 		partsStorageAPI((api) => {
-			api.selectPartID(apID);
+			api.selectPart(apID);
 			api.commit();
 		});
 	};
@@ -222,7 +233,7 @@ export function SidebarUI() {
 	const handleDeleteAttached = (apID) => {
 		partsStorageAPI((api) => {
 			api.disconnectPart(apID);
-			api.selectPartID(selectedPart.id);
+			api.selectPart(selectedPart.id);
 			api.commit();
 		});
 	};
@@ -239,12 +250,12 @@ export function SidebarUI() {
 
 	if (!partsIconsRef.current) {
 		const arr = [];
-		for (let shape in shapeRegistry) {
+		for (let partType in partTypeRegistry) {
 			arr.push({
-				type: shape,
-				name: shape.charAt(0).toUpperCase() + shape.slice(1),
-				icon: <PartIconView partName={shape} size={128} />,
-				description: `Description for ${shape}`,
+				type: partType,
+				name: partType.charAt(0).toUpperCase() + partType.slice(1),
+				icon: <PartIconView partType={partType} size={128} />,
+				description: `Description for ${partType}`,
 			});
 		}
 		partsIconsRef.current = [...arr];
@@ -264,8 +275,8 @@ export function SidebarUI() {
 						selectedPart={selectedPart}
 						handleChangeSegmentProperties={handleChangeSegmentProperties}
 						settingsStorage={settingsStorage}
-						setSettingsStorage={setSettingsStorage}
-						handleMovePart={handleMovePart}
+						handleSettingChange={handleSettingChange}
+						handleTranslatePart={handleTranslatePart}
 						handlePrevPart={handlePrevPart}
 						handleNextPart={handleNextPart}
 						handleChangeCenterProperties={handleChangeCenterProperties}

@@ -89,7 +89,7 @@ export function attachPart(selectedObject, hit) {
 
 	const hitPart = hitGroupObject.userData;
 	const selectedPart = selectedObject.userData;
-	const connectionType = selectedPart.shapeSegments.connectionType;
+	const connectionType = selectedPart.partType;
 	let finalPosition = point.clone();
 	let finalQuat = new THREE.Quaternion();
 
@@ -113,7 +113,7 @@ export function attachPart(selectedObject, hit) {
 	const forward = new THREE.Vector3().crossVectors(right, normal).normalize();
 
 	if (connectionType === "wing") {
-		const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments.back.pos);
+		const pSel = new THREE.Vector3().fromArray(selectedPart.fuselage.rearSegmentPos);
 		const finalMatrix = new THREE.Matrix4().makeBasis(right.clone(), forward.clone(), normal.clone().negate());
 		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
 		finalPosition = point.clone().add(pSel.clone().applyQuaternion(finalQuat));
@@ -123,13 +123,13 @@ export function attachPart(selectedObject, hit) {
 			// Собираем новую матрицу
 			const finalMatrix = new THREE.Matrix4().makeBasis(forward, normal, right.clone().negate());
 			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
-			const centerHeight = (selectedPart.shapeSegments.front.height + selectedPart.shapeSegments.back.height) / 4;
+			const centerHeight = (selectedPart.fuselage.frontHeight + selectedPart.fuselage.rearHeight) / 4;
 			const offset = new THREE.Vector3(0, -centerHeight, 0).applyQuaternion(finalQuat);
 			finalPosition.sub(offset);
-		} else if (attachTo === "front" || attachTo === "back") {
+		} else if (attachTo === "front" || attachTo === "rear") {
 			// локальные центры граней
-			const pHit = new THREE.Vector3().fromArray(hitPart.shapeSegments[attachTo].pos);
-			const pSel = new THREE.Vector3().fromArray(selectedPart.shapeSegments[otherSide(attachTo)].pos);
+			const pHit = new THREE.Vector3().fromArray(hitPart.fuselage[attachTo].pos);
+			const pSel = new THREE.Vector3().fromArray(selectedPart.fuselage[otherSide(attachTo)].pos);
 			// мировая точка центра грани базовой детали
 			finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
 			// итоговый поворот выбранной детали
@@ -146,8 +146,8 @@ export function attachPart(selectedObject, hit) {
 
 const otherSide = (side) => {
 	if (side === "front") {
-		return "back";
-	} else if (side === "back") {
+		return "rear";
+	} else if (side === "rear") {
 		return "front";
 	} else {
 		return "side";
@@ -204,21 +204,14 @@ export function moveAttachedTo(id, attachedToParts, objects) {
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false, mode = "Connected") => {
 	partsStorageAPI((api, prev) => {
 		const selectedPart = object.userData;
-		const selectedPartID = selectedPart.id;
-
-		let selectedPartPartProperties = {
-			pos: [object.position.x, object.position.y, object.position.z],
-			rot: [object.rotation.x, object.rotation.y, object.rotation.z],
-			drag: false,
-		};
 
 		if (lastHit) {
 			const attachTo = lastHit.object.name;
 			const hitGroupObject = lastHit.object.parent;
 			const hitPart = hitGroupObject.userData;
-			if (!hitPart.attachedParts.find((part) => part.id === selectedPartID)) {
+			if (!hitPart.attachedParts.find((part) => part.id === selectedPart.id)) {
 				api.connectParts(hitGroupObject, attachTo, object);
-				if (autoResizeParts && attachTo !== "side") {
+				/*if (autoResizeParts && attachTo !== "side") {
 					const hitSegment = hitPart.shapeSegments[attachTo];
 					const selectedSegment = selectedPart.shapeSegments[otherSide(attachTo)];
 					api.updPartsSegmentNameProps([
@@ -228,7 +221,7 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant, extendeble: false },
 						},
 					]);
-				}
+				}*/
 			}
 		}
 
@@ -237,14 +230,13 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			//moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
 		}
 
+		let list = [];
+
 		function saveAttaced(attachedParts) {
 			if (!attachedParts) return;
 			attachedParts.forEach((ap) => {
 				const attachedPartObj = objects.find((obj) => "dragPart" + ap.id === obj.name);
-				api.updPartProperties(ap.id, {
-					pos: attachedPartObj.position.toArray(),
-					rot: attachedPartObj.rotation.toArray(),
-				});
+				list.push({ id: ap.id, position: attachedPartObj.position.toArray(), rotation: attachedPartObj.rotation.toArray() });
 				saveAttaced(attachedPartObj.userData.attachedParts);
 			});
 		}
@@ -253,9 +245,26 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			saveAttaced(selectedPart.attachedParts);
 		}
 
-		api.updPartProperties(selectedPartID, selectedPartPartProperties);
+		prev.parts = prev.parts.map((p) => {
+			list.forEach((element, index) => {
+				if (p.id === element.id) {
+					if (element.position && element.rotation) {
+						p.position = element.position;
+						p.rotation = element.rotation;
+					}
+				}
+			});
+			if (p.id === selectedPart.id) {
+				p.position = object.position.toArray();
+				p.rotation = object.rotation.toArray();
+			}
+			return p;
+		});
 
-		api.selectPartID(selectedPartID);
+		selectedPart.position = object.position.toArray();
+		selectedPart.rotation = object.rotation.toArray();
+
+		api.selectPart(selectedPart);
 		api.commit();
 	});
 };

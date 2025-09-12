@@ -1,109 +1,204 @@
 import { Billboard, Sparkles, Text } from "@react-three/drei";
-import { ShapedPart } from "../components/ShapedForm/ShapedPart";
-
-const segmentShapeRegistry = {
-	rectangle: { pointsCount: 4, corners: [0, 0, 0, 0] },
-	circle8: { pointsCount: 8, corners: [100, 100, 100, 100] },
-	circle16: { pointsCount: 16, corners: [100, 100, 100, 100] },
-	circle32: { pointsCount: 32, corners: [100, 100, 100, 100] },
-	airfoil: { pointsCount: 32, corners: [100, 100, 100, 100], width: 2, height: 0.5 },
-};
-export class Segment {
-	constructor(parameters) {
-		let shape = segmentShapeRegistry[parameters.shapeName];
-		this.name = parameters.pos[2] > 0 ? "front" : "back";
-		this.pos = parameters.pos;
-		this.width = shape.width || 2;
-		this.height = shape.height || 2;
-		this.closed = parameters.closed || false;
-		this.pointsCount = shape.pointsCount;
-		this.extendeble = true;
-		this.corners = shape.corners.reduce((sum, val) => sum + val, 0) / shape.corners.length;
-		this.corner1 = shape.corners[0];
-		this.corner2 = shape.corners[1];
-		this.corner3 = shape.corners[2];
-		this.corner4 = shape.corners[3];
-		this.pinchX = 0;
-		this.pinchY = 0;
-		this.slant = 0;
-		this.angle = 0;
-		this.clamp1 = 0;
-		this.clamp2 = 0;
-		this.clamp3 = 0;
-		this.clamp4 = 0;
-		this.points = generatePoints(this);
-	}
-}
-
-export class shapeSegments {
-	constructor(parameters) {
-		this.front = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, parameters.length / 2 || 1], closed: parameters.closed });
-		this.back = new Segment({ shapeName: parameters.shapeName, pos: [0, 0, -parameters.length / 2 || -1], closed: parameters.closed });
-		this.center = { length: parameters.length || 2, xOffset: 0, zOffset: 0, pinchX: 0, pinchY: 0, angle: 0 };
-		this.doubleSided = parameters.doubleSided || false;
-		this.connectionType = parameters.connectionType || "block";
-	}
-}
-
-// Регистрируем все доступные детали здесь
-
-const blockShape = new shapeSegments({
-	shapeName: "rectangle",
-	closed: true,
-});
-
-const fuselageShape = new shapeSegments({
-	shapeName: "circle16",
-	closed: false,
-	doubleSided: true,
-});
-
-const fueltankShape = new shapeSegments({
-	shapeName: "circle32",
-	closed: true,
-});
-
-const wingShape = new shapeSegments({
-	shapeName: "airfoil",
-	closed: true,
-	length: 6,
-	connectionType: "wing",
-});
+import { FuselageModel } from "../components/Fuselage";
+import { Cockpit } from "../components/Cockpit";
 
 // eslint-disable-next-line react-refresh/only-export-components
-export const shapeRegistry = {
-	fueltank: fueltankShape,
-	block: blockShape,
-	fuselage: fuselageShape,
-	wing: wingShape,
+export const partTypeRegistry = {
+	fuselage: {},
+	engine: {},
 };
 
 export class Part {
 	constructor(parameters) {
 		this.id = parameters.id;
-		this.name = parameters.type.charAt(0).toUpperCase() + parameters.type.slice(1);
-		this.type = parameters.type;
-		this.pos = parameters.pos || [0, 0, 0];
-		this.rot = parameters.rot || [0, 0, 0];
-		this.mass = parameters.mass || 1;
-		this.color = parameters.color || "gray";
-		this.attachedParts = parameters.attachedParts || [];
-		this.attachedToParts = parameters.attachedToParts || [];
-		this.shapeSegments = parameters.shapeSegments || shapeRegistry[parameters.type] || null;
+		this.name = parameters.partType.charAt(0).toUpperCase() + parameters.partType.slice(1);
+		this.partType = parameters.partType;
+		this.position = parameters.position || [0, 0, 0];
+		this.rotation = parameters.rotation || [0, 0, 0];
+		this.materials = parameters.materials || [0];
+		this.health = parameters.health || 1;
+		this.calculateDrag = parameters.calculateDrag || true;
+		this.partCollisionResponse = parameters.partCollisionResponse || true;
+		this.editor = new Editor(parameters);
+		if (parameters.partType === "fuselage") {
+			this.fuselage = new Fuselage(parameters);
+		}
+		if (parameters.partType === "engine") {
+			this.engine = new Engine(parameters);
+		}
+		this.clearAttachedToParts = () => {
+			this.editor.attachedToParts = [];
+		};
+		this.removeAttachedPartByID = (id) => {
+			this.editor.attachedParts = this.editor.attachedParts.filter((ap) => ap.id !== id);
+		};
+
+		this.updateSegmentProperties = (segmentName, newProps) => {
+			if (segmentName === "front" || segmentName === "rear") {
+				let segment = this.fuselage[segmentName];
+				segment = { ...segment, ...newProps };
+				this.fuselage[segmentName] = segment;
+			}
+		};
+	}
+
+	get attachedParts() {
+		return this.editor.attachedParts;
+	}
+
+	get attachedToParts() {
+		return this.editor.attachedToParts;
+	}
+
+	set setFrontPinchX(a) {
+		this.fuselage.front.pinchX = a;
+	}
+}
+
+export class Editor {
+	constructor(parameters) {
+		this.root = parameters.root || false;
 		this.drag = false;
 		this.objectName = parameters.objectName || "dragPart" + parameters.id;
-		this.root = parameters.root || false;
+		this.attachedParts = parameters.attachedParts || [];
+		this.attachedToParts = parameters.attachedToParts || [];
+	}
+}
+
+class Fuselage {
+	constructor(parameters) {
+		class Segment {
+			constructor(parameters) {
+				this.scale = [2, 2];
+				this.pointsCount = 32;
+				this.corners = [1, 1, 1, 1];
+				this.pinchX = 0;
+				this.pinchY = 0;
+				this.slant = 0;
+				this.angle = 0;
+				this.clamps = [0, 0, 0, 0];
+				this.points = generatePoints(this);
+			}
+
+			get cornersAvg() {
+				return this.corners.reduce((sum, val) => sum + val, 0) / 4;
+			}
+		}
+
+		this.version = 1;
+		this.front = new Segment();
+		this.rear = new Segment();
+		this.offset = parameters.offset || [0, 0, 2];
+		this.deadWeight = parameters.deadWeight || 0;
+		this.closed = parameters.closed || false;
+		this.doubleSided = parameters.doubleSided || false;
+	}
+
+	get frontHeight() {
+		return this.front.scale[1];
+	}
+
+	get frontWidth() {
+		return this.front.scale[0];
+	}
+
+	get rearHeight() {
+		return this.rear.scale[1];
+	}
+
+	get rearWidth() {
+		return this.rear.scale[0];
+	}
+
+	get frontSegmentPos() {
+		const fuselageXOffset = this.offset[0];
+		const fuselageZOffset = this.offset[1];
+		const fuselageLength = this.offset[2];
+		return [fuselageXOffset / 2, fuselageZOffset / 2, fuselageLength / 2];
+	}
+
+	get rearSegmentPos() {
+		const fuselageXOffset = this.offset[0];
+		const fuselageZOffset = this.offset[1];
+		const fuselageLength = this.offset[2];
+		return [-fuselageXOffset / 2, -fuselageZOffset / 2, -fuselageLength / 2];
+	}
+
+	get pinchXAvg() {
+		return (this.front.pinchX + this.rear.pinchX) / 2;
+	}
+
+	get pinchYAvg() {
+		return (this.front.pinchY + this.rear.pinchY) / 2;
+	}
+
+	get angleAvg() {
+		return (this.front.angle + this.rear.angle) / 2;
+	}
+}
+
+export class FuelTank {
+	constructor(parameters) {
+		this.fuel = parameters.fuel;
+		this.capacity = parameters.capacity;
+	}
+}
+
+export class Wing {
+	constructor(parameters) {
+		this.angleOfAttack = 0;
+		this.airfoil = "";
+		this.inverted = false;
+		this.wingPhysicsEnabled = true;
+	}
+}
+
+export class ControlSurface {
+	constructor(parameters) {
+		this.input = 0;
+		this.invert = false;
+		this.maxDeflectionDegree = false;
+	}
+}
+
+export class Engine {
+	constructor(parameters) {
+		this.powerMultiplier = parameters.powerMultiplier;
+		this.throttleResponse = parameters.throttleResponse;
+		this.model = "";
+	}
+}
+
+export class Variables {
+	constructor(parameters) {}
+}
+
+export class Inputs {
+	constructor(parameters) {
+		this.input = parameters.input;
+		this.max = parameters.max;
+		this.min = parameters.min;
+		this.invert = parameters.invert;
+		this.activationGroup = parameters.activationGroup;
 	}
 }
 
 export const CreatePart = ({ part, selected = false, editor }) => {
 	return (
-		<group name={part.objectName} position={part.pos} rotation={part.rot} userData={part}>
-			<ShapedPart part={part} selected={selected} editor={editor} />
+		<group name={part.editor.objectName} position={part.position} rotation={part.rotation} userData={part}>
+			{part.fuselage && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}
 
 			{editor && (
 				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">
-					{part.objectName + "|" + " [" + part.attachedParts.map((ap) => ap.id) + "]" + " to [" + part.attachedToParts.map((ap) => ap.id) + "]\n"}
+					{part.editor.objectName +
+						"|" +
+						" [" +
+						part.editor.attachedParts.map((ap) => ap.id) +
+						"]" +
+						" to [" +
+						part.editor.attachedToParts.map((ap) => ap.id) +
+						"]\n" +
+						part.position}
 				</Text>
 			)}
 		</group>
@@ -112,18 +207,11 @@ export const CreatePart = ({ part, selected = false, editor }) => {
 
 // eslint-disable-next-line react-refresh/only-export-components
 export function generatePoints(segment) {
-	let { pointsCount, width, height, pinchX, pinchY, slant, angle } = segment;
-	const corners = [segment.corner1, segment.corner2, segment.corner3, segment.corner4].map((c) => c / 100);
-	const clapms = [segment.clamp1, segment.clamp2, segment.clamp3, segment.clamp4].map((c) => c / 100);
+	let { pointsCount, scale, pinchX, pinchY, slant, angle, corners, clapms } = segment;
 	const center = [0, 0, 0];
 	const [cx, cy, cz] = center;
-	const w = width || 2;
-	const h = height || 2;
-
-	pinchY *= 0.01;
-	pinchX *= 0.01;
-	slant *= 0.01;
-	angle *= 0.01;
+	const w = scale[0] || 2;
+	const h = scale[1] || 2;
 
 	// углы ограничиваем половиной сторон
 	const [rw1, rw2, rw3, rw4] = corners.map((r) => (r * w) / 2);

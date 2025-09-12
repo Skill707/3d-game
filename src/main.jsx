@@ -1,4 +1,4 @@
-import { StrictMode, useEffect, useMemo, useRef } from "react";
+import { StrictMode, Suspense, useEffect, useMemo, useRef } from "react";
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import { useAtom } from "jotai";
@@ -141,10 +141,12 @@ export function Game() {
 						</GizmoHelper>
 					</>
 				)}
-				<Physics gravity={[0, -9.81, 0]}>
-					<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
-					<Ground width={2000} height={2000} segX={100} segY={100} amplitude={3} frequency={5} />
-				</Physics>
+				<Suspense>
+					<Physics gravity={[0, -9.81, 0]} >
+						<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
+						<Ground width={2000} height={2000} segX={100} segY={100} amplitude={3} frequency={5} />
+					</Physics>
+				</Suspense>
 			</Canvas>
 			<Stats className="stats" />
 			<Loader />

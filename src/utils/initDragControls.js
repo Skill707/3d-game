@@ -22,15 +22,15 @@ export const initDragControls = (objects, threeStuff, partsStorageAPI, settingsS
 		partsStorageAPI((api, prev) => {
 			if (button === 2) {
 				const newPart = api.addPart({
-					type: selectedPart.type,
-					pos: e.object.position.clone().toArray(),
-					rot: e.object.rotation.clone().toArray(),
-					shapeSegments: selectedPart.shapeSegments,
+					partType: selectedPart.partType,
+					position: e.object.position.clone().toArray(),
+					rotation: e.object.rotation.clone().toArray(),
+					fuselage: selectedPart.fuselage,
 				});
 				api.commit();
 				lastAddedRef.current = "dragPart" + newPart.id;
 			} else if (button === 0) {
-				api.disconnectPart(selectedPart.id);
+				api.disconnectPart(selectedPart);
 				api.commit();
 			}
 		});

@@ -2,7 +2,7 @@ import { Canvas, useThree } from "@react-three/fiber";
 import { CreatePart, Part } from "../../../utils/partFactory";
 import { useEffect, useState } from "react";
 
-function Snapshot({ partName, onRendered }) {
+function Snapshot({ partType, onRendered }) {
 	const { gl } = useThree();
 	
 	useEffect(() => {
@@ -18,12 +18,12 @@ function Snapshot({ partName, onRendered }) {
 		<>
 			<ambientLight intensity={0.5} />
 			<directionalLight position={[-20, 20, 20]} intensity={0.8} />
-			<CreatePart part={new Part({ id: "view", type: partName, color:"white" })} editor={true}/>
+			<CreatePart part={new Part({ id: "view", partType: partType, color:"white" })} editor={true}/>
 		</>
 	);
 }
 
-export function PartIconView({ partName, size = 64 }) {
+export function PartIconView({ partType, size = 64 }) {
 	const [img, setImg] = useState(null);
 	return (
 		<div style={{ width: size, height: size, userSelect: "none" }}>
@@ -31,7 +31,7 @@ export function PartIconView({ partName, size = 64 }) {
 				<img src={img} width={size} height={size} draggable={false} />
 			) : (
 				<Canvas shadows frameloop="demand" camera={{ position: [1.5, 1.5, 3] }}>
-					<Snapshot partName={partName} onRendered={setImg} />
+					<Snapshot partType={partType} onRendered={setImg} />
 				</Canvas>
 			)}
 		</div>

@@ -18,7 +18,7 @@ export function SearchPartsPanel({ onClose }) {
 
 	const handleSelectPart = (id) => {
 		partsStorageAPI((api) => {
-			api.selectPartID(id);
+			api.selectPart(id);
 			api.commit();
 		});
 	};

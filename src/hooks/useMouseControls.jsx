@@ -8,7 +8,7 @@ let selected = null;
 
 export default function useMouseControls(enabled, partsStorage, partsStorageAPI, settingsStorage, orbit) {
 	const { scene, camera, gl } = useThree();
-
+	
 	function updatePointer(event) {
 		const rect = gl.domElement.getBoundingClientRect();
 		pointer.x = ((event.clientX - rect.left) / rect.width) * 2 - 1;
@@ -27,7 +27,7 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 		const intersections = [];
 		raycaster.setFromCamera(pointer, camera);
 		raycaster.intersectObjects(scene.children, true, intersections);
-		const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("back") || i.object.name.includes("side"));
+		const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("rear") || i.object.name.includes("side"));
 		return hits;
 	}
 
@@ -44,7 +44,7 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 					orbit.current.enabled = false;
 					if (settingsStorage.activeSubToolId !== "PAINT") {
 						partsStorageAPI((api) => {
-							api.selectObjectName(selected.name);
+							api.selectPart(selected.name);
 							api.commit();
 						});
 					} else {

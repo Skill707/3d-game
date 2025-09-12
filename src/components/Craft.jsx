@@ -11,6 +11,7 @@ import { useKeyboardControls } from "@react-three/drei";
 import { applyLocalForce, applyLocalTorque } from "../utils/transformUtils";
 
 export const Craft = ({ orbitControlsRef, editor = true }) => {
+	console.log("Craft UPDATE");
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
@@ -35,14 +36,17 @@ export const Craft = ({ orbitControlsRef, editor = true }) => {
 				api.addPart(settingsStorage.addParts.selectedPartType);
 				api.commit();
 			});
-			lastAddedRef.current = "dragPart" + changes[0].id;
-			setSettingsStorage((prev) => ({
-				...prev,
-				addParts: {
-					...prev.addParts,
-					selectedPartType: null,
-				},
-			}));
+			console.log("changes", changes);
+			if (changes.length > 0) {
+				lastAddedRef.current = "dragPart" + changes[0].id;
+				setSettingsStorage((prev) => ({
+					...prev,
+					addParts: {
+						...prev.addParts,
+						selectedPartType: null,
+					},
+				}));
+			}
 		}
 
 		// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -52,11 +56,11 @@ export const Craft = ({ orbitControlsRef, editor = true }) => {
 		rigidBodyRef.current.setTranslation(vec3({ x: 0, y: 5, z: 0 }), true);
 		rigidBodyRef.current.setRotation(quat({ x: 0, y: 0, z: 0, w: 1 }), true);
 		craftGroupRef.current.position.set(0, -5, 0);
-		console.log("reset", craftGroupRef.current);
+		//console.log("reset", craftGroupRef.current);
 	}, [editor]);
 
 	useFrame((state, delta) => {
-		if (editor) return
+		if (editor) return;
 		if (orbitControlsRef.current && rigidBodyRef.current) {
 			const position = vec3(rigidBodyRef.current.translation());
 			const quaternion = quat(rigidBodyRef.current.rotation());

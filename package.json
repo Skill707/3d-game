@@ -19,6 +19,7 @@
 		"@react-three/postprocessing": "^3.0.4",
 		"@react-three/rapier": "^2.1.0",
 		"framer-motion": "^12.23.9",
+		"gltfjsx": "^6.5.3",
 		"jotai": "^2.12.5",
 		"leva": "^0.10.0",
 		"react": "^19.1.0",

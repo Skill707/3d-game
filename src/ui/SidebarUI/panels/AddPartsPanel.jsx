@@ -72,9 +72,9 @@ export function AddPartsPanel({ partIcons, onClose }) {
 									whileHover={{ y: -4, transition: { duration: 0.2 } }}
 								>
 									<Box className="part-image-placeholder">{part.icon}</Box>
-									<CardContent sx={{ p: 1, "&:last-child": { pb: 1 } }}>
+									<CardContent sx={{ p: 0, "&:last-child": { pb: 0 } }}>
 										<Typography className="part-name">{part.name}</Typography>
-										<Typography className="part-description">{part.description}</Typography>
+										{/*<Typography className="part-description">{part.description}</Typography>*/}
 									</CardContent>
 								</motion.Card>
 							))}
