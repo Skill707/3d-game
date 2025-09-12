@@ -49,7 +49,7 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 						});
 					} else {
 						partsStorageAPI((api) => {
-							api.updPartProperties(selected.userData.id, { color: settingsStorage.paint.selected });
+							//api.updPartProperties(selected.userData.id, { color: settingsStorage.paint.selected });
 							api.commit();
 						});
 					}

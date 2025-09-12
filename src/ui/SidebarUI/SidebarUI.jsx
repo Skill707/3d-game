@@ -161,17 +161,11 @@ export function SidebarUI() {
 
 		const key = Object.keys(newProperties)[0]; // берём первый изменённый ключ
 
-		if (["length", "zOffset", "xOffset"].includes(key)) {
-			// если меняем геометрию — пересчёт позиций
-			const { length, zOffset, xOffset } = newProperties;
-			const lengthDelta = selectedPart.shapeSegments.center.length - length;
-			const zOffsetDelta = selectedPart.shapeSegments.center.zOffset - zOffset;
-			const xOffsetDelta = selectedPart.shapeSegments.center.xOffset - xOffset;
-
-			// основной part
-			addUpdate(selectedPart.id, "front", { pos: [xOffset, zOffset, length / 2] });
-			addUpdate(selectedPart.id, "back", { pos: [-xOffset, -zOffset, -length / 2] });
-
+		if (key === "offset") {
+			const { offset } = newProperties;
+			const xOffsetDelta = selectedPart.fuselage.offset[0] - offset[0];
+			const zOffsetDelta = selectedPart.fuselage.offset[1] - offset[1];
+			const lengthDelta = selectedPart.fuselage.offset[2] - offset[2];
 			selectedPart.attachedParts.forEach((ap) => {
 				translateList.push({ id: ap.id, posDelta: localPosDelta([-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2], selectedPart.rot) });
 			});
@@ -179,8 +173,10 @@ export function SidebarUI() {
 				translateList.push({ id: atp.id, posDelta: localPosDelta([xOffsetDelta, zOffsetDelta, lengthDelta / 2], selectedPart.rot) });
 			});
 		} else {
+			const prev = { pinchX: selectedPart.fuselage.pinchXAvg, pinchY: selectedPart.fuselage.pinchYAvg, angle: selectedPart.fuselage.angleAvg };
+			newProperties = { ...prev, ...newProperties };
 			addUpdate(selectedPart.id, "front", newProperties);
-			addUpdate(selectedPart.id, "back", newProperties);
+			addUpdate(selectedPart.id, "rear", newProperties);
 
 			if (settingsStorage.move.autoResizeParts) {
 				selectedPart.attachedParts.forEach((ap) => {

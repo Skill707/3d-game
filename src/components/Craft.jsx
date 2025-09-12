@@ -11,15 +11,14 @@ import { useKeyboardControls } from "@react-three/drei";
 import { applyLocalForce, applyLocalTorque } from "../utils/transformUtils";
 
 export const Craft = ({ orbitControlsRef, editor = true }) => {
-	console.log("Craft UPDATE");
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
+	console.log("Craft UPDATE", partsStorage.parts[0].fuselage);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
 	const craftGroupRef = useRef(null);
 	const rigidBodyRef = useRef(null);
 	const craftControlsRef = useRef({ pitch: 0, roll: 0, yaw: 0, throttle: 0 });
 	const [sub, get] = useKeyboardControls();
-
 	const dragControlsRef = useDragControls(
 		(editor && settingsStorage.activeSubToolId === "MOVE") || settingsStorage.activeSubToolId === "RESHAPE",
 		orbitControlsRef,

@@ -142,9 +142,7 @@ function raycast() {
 	objects = objects.filter((o) => {
 		if (this.selected) {
 			const part = this.selected.userData instanceof Part && this.selected.userData;
-			console.log(part);
 			const find = part.attachedParts.find((ap) => ap.id === o.userData.id);
-			//console.log("find", find);
 			return find === undefined;
 		}
 		return true;

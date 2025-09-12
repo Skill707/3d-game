@@ -87,7 +87,7 @@ export function DesignerPanel({
 				offset[field === "length" ? 2 : field === "zOffset" ? 1 : 0] = newValue;
 				newProps = { offset };
 			} else {
-				newProps = { [field]: newValue };
+				newProps = { [field]: newValue / 100 };
 			}
 			handleChangeCenterProperties(newProps);
 		} else if (selectedSection === "front" || selectedSection === "rear") {
@@ -96,8 +96,18 @@ export function DesignerPanel({
 				newProps = {
 					corners: new Array(4).fill(newValue / 100),
 				};
-			} else {
+			} else if (field.includes("corner")) {
+				let corners = selectedPart.fuselage[selectedSection].corners;
+				corners[parseInt(field.split("corner")[1]) - 1] = newValue / 100;
+				newProps = { corners };
+			} else if (field == "height" || field == "width") {
+				let scale = selectedPart.fuselage[selectedSection].scale;
+				scale[field === "height" ? 1 : 0] = newValue;
+				newProps = { scale };
+			} else if (field == "pointsCount") {
 				newProps = { [field]: newValue };
+			} else {
+				newProps = { [field]: newValue / 100 };
 			}
 			handleChangeSegmentProperties(selectedSection, newProps);
 		}
@@ -308,21 +318,21 @@ export function DesignerPanel({
 								/>
 								<SensitivitySlider
 									label="Pinch X"
-									value={fuselage.pinchXAvg}
+									value={fuselage.pinchXAvg * 100}
 									onChange={handlePropertiesChange("pinchX")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Pinch Y"
-									value={fuselage.pinchYAvg}
+									value={fuselage.pinchYAvg * 100}
 									onChange={handlePropertiesChange("pinchY")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Angle"
-									value={fuselage.angleAvg}
+									value={fuselage.angleAvg * 100}
 									onChange={handlePropertiesChange("angle")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
@@ -374,28 +384,28 @@ export function DesignerPanel({
 
 								<SensitivitySlider
 									label="Pinch X"
-									value={segment.pinchX}
+									value={segment.pinchX * 100}
 									onChange={handlePropertiesChange("pinchX")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Pinch Y"
-									value={segment.pinchY}
+									value={segment.pinchY * 100}
 									onChange={handlePropertiesChange("pinchY")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Slant"
-									value={segment.slant}
+									value={segment.slant * 100}
 									onChange={handlePropertiesChange("slant")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}
 								/>
 								<SensitivitySlider
 									label="Angle"
-									value={segment.angle}
+									value={segment.angle * 100}
 									onChange={handlePropertiesChange("angle")}
 									min={-100}
 									displayTransformer={(v) => (v === 0 ? "None" : `${v}%`)}

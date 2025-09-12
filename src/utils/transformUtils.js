@@ -202,6 +202,11 @@ export function moveAttachedTo(id, attachedToParts, objects) {
 }
 
 export const saveTransformation = (partsStorageAPI, object, objects = null, lastHit = null, autoResizeParts = false, mode = "Connected") => {
+	if (mode === "Connected") {
+		moveAttached(object, objects);
+		//moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
+	}
+
 	partsStorageAPI((api, prev) => {
 		const selectedPart = object.userData;
 
@@ -223,11 +228,6 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 					]);
 				}*/
 			}
-		}
-
-		if (mode === "Connected") {
-			moveAttached(object, objects);
-			//moveAttachedTo(selectedPartID, selectedPart.attachedToParts, objects);
 		}
 
 		let list = [];

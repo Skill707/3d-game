@@ -1,5 +1,5 @@
 import { atom } from "jotai";
-import { generatePoints, Part } from "../utils/partFactory";
+import { Part } from "../utils/partFactory";
 import { getOffsetMatrix } from "../utils/transformUtils";
 
 const initialState = { parts: [new Part({ id: 0, partType: "fuselage", root: true })], selectedPart: null, lastUpdate: new Date().getTime() };
@@ -9,22 +9,16 @@ const loadPartsFromStorage = () => {
 		const stored = localStorage.getItem("craftParts");
 		if (stored && stored != undefined) {
 			let parsedParts = JSON.parse(stored);
-			const parts = parsedParts.parts.map((p) => new Part(p));
-			return { ...initialState, parts: parts };
+			if (parsedParts.length > 0) {
+				const parts = parsedParts.map((p) => new Part(p));
+				return { ...initialState, parts: parts };
+			}
 		}
 	} catch (e) {
 		console.error("Error loading parts from localStorage:", e);
 	}
 	return initialState;
 };
-
-function updateShapeSegment(shapeSegments, newSegment) {
-	newSegment.points = generatePoints(newSegment);
-	return { ...shapeSegments, [newSegment.name]: newSegment };
-}
-function updateShapeSegmentProperties(segment, newProperties) {
-	return { ...segment, ...newProperties, name: segment.name, closed: segment.closed };
-}
 
 const otherSide = (side) => {
 	if (side === "front") {
@@ -46,6 +40,15 @@ export default atom(
 		let newState = { ...prev, lastUpdate: Date.now() };
 		newState.lastUpdate = new Date().getTime();
 		let updatedParts = [];
+
+		function updateParts(list, op) {
+			newState.parts = newState.parts.map((p) => {
+				list.forEach((element) => {
+					if (p.id === element.id) op(p, element);
+				});
+				return p;
+			});
+		}
 
 		/**
 		 * API для управления частями.
@@ -95,25 +98,12 @@ export default atom(
 				let updatedPart = null;
 				newState.parts = newState.parts.map((part) => {
 					if (part.id === id) {
-						updatedPart = { ...part, ...properties };
-						return updatedPart;
+						return part;
 					}
 					return part;
 				});
 				updatedParts.push(updatedPart);
 				return updatedPart;
-			},
-			updPartListProps: (list) => {
-				newState.parts = newState.parts.map((part) => {
-					list.forEach((element, index) => {
-						if (part.id === element.id) {
-							list[index] = part;
-						}
-					});
-					return part;
-				});
-				updatedParts.push(...list);
-				return list;
 			},
 			connectParts: (firstObject, attachTo, secondObject) => {
 				const firstPartID = firstObject.userData.id;
@@ -133,11 +123,11 @@ export default atom(
 					place: otherSide(attachTo),
 					root: firstObject.userData.root,
 				};
-				const list = [
-					{ id: firstPartID, pushTo: { attachedParts: firstStatePartAttachedParts } },
-					{ id: secondPartID, pushTo: { attachedToParts: secondStatePartAttachedToParts } },
-				];
-				return api.updPartListProps(list);
+				newState.parts = newState.parts.map((p) => {
+					if (p.id === firstPartID) p.editor.attachedParts.push(firstStatePartAttachedParts);
+					if (p.id === secondPartID) p.editor.attachedToParts.push(secondStatePartAttachedToParts);
+					return p;
+				});
 			},
 			disconnectPart: (part) => {
 				const list = part.editor.attachedParts;
@@ -150,37 +140,24 @@ export default atom(
 				});
 			},
 			translateParts: (list) => {
-				newState.parts = newState.parts.map((p) => {
-					list.forEach((element) => {
-						if (p.id === element.id)
-							p.position = [p.position[0] + element.posDelta[0], p.position[1] + element.posDelta[1], p.position[2] + element.posDelta[2]];
-					});
-					return p;
+				updateParts(list, (p, element) => {
+					p.position = p.position.map((v, i) => v + element.posDelta[i]);
 				});
 			},
 			rotateParts: (list) => {
-				newState.parts = newState.parts.map((p) => {
-					list.forEach((element) => {
-						if (p.id === element.id)
-							p.rotation = [p.rotation[0] + element.rotDelta[0], p.rotation[1] + element.rotDelta[1], p.rotation[2] + element.rotDelta[2]];
-					});
-					return p;
+				updateParts(list, (p, element) => {
+					p.rotation = [p.rotation[0] + element.rotDelta[0], p.rotation[1] + element.rotDelta[1], p.rotation[2] + element.rotDelta[2]];
 				});
 			},
 			updShapeCenter: (id, newProperties) => {
-				const statePart = newState.parts.find((p) => p.id === id);
-				let newShapeSegments = structuredClone(statePart.shapeSegments);
-				newShapeSegments.center = { ...newShapeSegments.center, ...newProperties };
-				api.updPartProperties(id, {
-					shapeSegments: newShapeSegments,
+				newState.parts = newState.parts.map((p) => {
+					if (p.id === id) p.updateFuselageProperties(newProperties);
+					return p;
 				});
 			},
 			updPartsSegmentNameProps: (list) => {
-				newState.parts = newState.parts.map((p) => {
-					list.forEach((element) => {
-						if (p.id === element.id) p.updateSegmentProperties(element.segmentName, element.newProperties);
-					});
-					return p;
+				updateParts(list, (p, element) => {
+					p.updateSegmentProperties(element.segmentName, element.newProperties);
 				});
 			},
 			commit: (state) => {
