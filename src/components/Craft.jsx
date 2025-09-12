@@ -12,7 +12,7 @@ import { applyLocalForce, applyLocalTorque } from "../utils/transformUtils";
 
 export const Craft = ({ orbitControlsRef, editor = true }) => {
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
-	console.log("Craft UPDATE", partsStorage.parts[0].fuselage);
+	console.log("Craft UPDATE", partsStorage.parts);
 	const [settingsStorage, setSettingsStorage] = useAtom(settingsAtom);
 	const lastAddedRef = useRef(null);
 	const craftGroupRef = useRef(null);

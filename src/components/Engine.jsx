@@ -1,27 +1,43 @@
 import { useGLTF } from "@react-three/drei";
+import GlowMesh from "./ShapedForm/GlowMesh";
 
-export const Engine = ({ name }) => {
+export const EngineModel = ({ name, scale, color, selected, editor }) => {
 	const { nodes, materials } = useGLTF("/engines.glb");
 
-	if (name === "Engine1")
+	if (name === "engine1")
 		return (
 			<group dispose={null}>
-				<mesh geometry={nodes.Engine1.geometry} material={materials["DesignerPartDisconnected(Clone) (Instance)"]} rotation={[Math.PI / 2, 0, 0]} />
+				<mesh
+					name="engine1"
+					geometry={nodes.Engine1.geometry}
+					material={materials["DesignerPartDisconnected(Clone) (Instance)"]}
+					rotation={[Math.PI / 2, 0, 0]}
+					scale={scale}
+				/>
+				{selected && editor && <GlowMesh geometry={nodes.Engine1.geometry} rotation={[Math.PI / 2, 0, 0]} scale={scale} />}
 			</group>
 		);
-	else if (name === "Engine2") {
+	else if (name === "engine2") {
 		return (
 			<group dispose={null}>
-				<group rotation={[Math.PI / 2, 0, 0]}>
-					<mesh geometry={nodes.Body_7.geometry} material={materials["DesignerPartSelected(Clone) (Instance)"]} />
-					<mesh geometry={nodes.Body_7_1.geometry} material={materials["DesignerSubPartSelected(Clone) (Instance)"]} />
+				<group rotation={[Math.PI / 2, 0, 0]} scale={scale}>
+					<mesh name="engine2" geometry={nodes.Body_7.geometry} material={materials["DesignerPartSelected(Clone) (Instance)"]} />
+					<mesh name="engine2" geometry={nodes.Body_7_1.geometry} material={materials["DesignerSubPartSelected(Clone) (Instance)"]} />
+					{selected && editor && <GlowMesh geometry={nodes.Body_7.geometry} />}
 				</group>
 			</group>
 		);
-	} else if (name === "Engine3") {
+	} else if (name === "engine3") {
 		return (
 			<group dispose={null}>
-				<mesh geometry={nodes.Engine3.geometry} material={materials["DesignerPartDisconnected(Clone) (Instance)"]} rotation={[Math.PI / 2, 0, 0]} />
+				<mesh
+					name="engine3"
+					geometry={nodes.Engine3.geometry}
+					material={materials["DesignerPartDisconnected(Clone) (Instance)"]}
+					rotation={[Math.PI / 2, 0, 0]}
+					scale={scale}
+				/>
+				{selected && editor && <GlowMesh geometry={nodes.Engine3.geometry} rotation={[Math.PI / 2, 0, 0]} scale={scale} />}
 			</group>
 		);
 	}

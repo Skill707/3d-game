@@ -15,7 +15,6 @@ import { PartIconView } from "./components/PartIconView";
 import partsStorageAtom from "../../state/partsStorageAtom";
 import { useKeyboardControls } from "@react-three/drei";
 import { localPosDelta } from "../../utils/transformUtils";
-import { partTypeRegistry } from "../../utils/partFactory";
 
 export function SidebarUI() {
 	const [activePanel, setActivePanel] = useState(null);
@@ -120,7 +119,6 @@ export function SidebarUI() {
 			api.commit();
 		});
 	};
-
 	const otherSide = (side) => {
 		if (side === "front") {
 			return "rear";
@@ -167,10 +165,10 @@ export function SidebarUI() {
 			const zOffsetDelta = selectedPart.fuselage.offset[1] - offset[1];
 			const lengthDelta = selectedPart.fuselage.offset[2] - offset[2];
 			selectedPart.attachedParts.forEach((ap) => {
-				translateList.push({ id: ap.id, posDelta: localPosDelta([-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2], selectedPart.rot) });
+				translateList.push({ id: ap.id, posDelta: localPosDelta([-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2], selectedPart.rotation) });
 			});
 			selectedPart.attachedToParts.forEach((atp) => {
-				translateList.push({ id: atp.id, posDelta: localPosDelta([xOffsetDelta, zOffsetDelta, lengthDelta / 2], selectedPart.rot) });
+				translateList.push({ id: atp.id, posDelta: localPosDelta([xOffsetDelta, zOffsetDelta, lengthDelta / 2], selectedPart.rotation) });
 			});
 		} else {
 			const prev = { pinchX: selectedPart.fuselage.pinchXAvg, pinchY: selectedPart.fuselage.pinchYAvg, angle: selectedPart.fuselage.angleAvg };
@@ -244,16 +242,19 @@ export function SidebarUI() {
 		}));
 	};
 
+	const partTypeRegistry = ["fuselage", "engine1", "engine2", "engine3", "cockpit", "wing"];
+
 	if (!partsIconsRef.current) {
 		const arr = [];
-		for (let partType in partTypeRegistry) {
+
+		partTypeRegistry.forEach((partType) => {
 			arr.push({
 				type: partType,
 				name: partType.charAt(0).toUpperCase() + partType.slice(1),
 				icon: <PartIconView partType={partType} size={128} />,
 				description: `Description for ${partType}`,
 			});
-		}
+		});
 		partsIconsRef.current = [...arr];
 	}
 

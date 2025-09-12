@@ -130,7 +130,7 @@ export default atom(
 				});
 			},
 			disconnectPart: (part) => {
-				const list = part.editor.attachedParts;
+				const list = part.editor.attachedToParts;
 				newState.parts = newState.parts.map((p) => {
 					list.forEach((element, index) => {
 						if (p.id === element.id) p.removeAttachedPartByID(part.id);

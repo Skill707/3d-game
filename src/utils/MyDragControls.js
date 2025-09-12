@@ -148,7 +148,11 @@ function raycast() {
 		return true;
 	});
 	this.raycaster.intersectObjects(objects, true, intersections);
-	const hits = intersections.filter((i) => i.object.name.includes("front") || i.object.name.includes("rear") || i.object.name.includes("side"));
+	const hits = intersections.filter(
+		(i) => i.object.name !== "" && i.object.name !== "ground" && i.object.name !== "grid" && i.object.name !== "text" && i.object.name !== "glowMesh"
+	);
+
+	//.filter((i) => i.object.name.includes("front") || i.object.name.includes("rear") || i.object.name.includes("side"));
 	return hits;
 }
 

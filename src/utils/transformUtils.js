@@ -117,7 +117,7 @@ export function attachPart(selectedObject, hit) {
 		const finalMatrix = new THREE.Matrix4().makeBasis(right.clone(), forward.clone(), normal.clone().negate());
 		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
 		finalPosition = point.clone().add(pSel.clone().applyQuaternion(finalQuat));
-	} else {
+	} else if (connectionType === "fuselage") {
 		if (attachTo === "side") {
 			finalPosition = point.clone();
 			// Собираем новую матрицу
@@ -212,7 +212,20 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 
 		if (lastHit) {
 			const attachTo = lastHit.object.name;
-			const hitGroupObject = lastHit.object.parent;
+			console.log("1", lastHit.object);
+
+			function findGroup(obj, group = null) {
+				console.log(obj);
+
+				if (obj.isGroup) group = obj;
+
+				if (obj.parent.name.includes("dragPart")) return obj.parent;
+
+				return findGroup(obj.parent, group);
+			}
+			const hitGroupObject = findGroup(lastHit.object);
+			console.log("hitGroupObject", hitGroupObject);
+
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPart.id)) {
 				api.connectParts(hitGroupObject, attachTo, object);

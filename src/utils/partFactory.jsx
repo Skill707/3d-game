@@ -1,15 +1,12 @@
 import { Billboard, Sparkles, Text } from "@react-three/drei";
 import { FuselageModel } from "../components/Fuselage";
-import { Cockpit } from "../components/Cockpit";
-
-// eslint-disable-next-line react-refresh/only-export-components
-export const partTypeRegistry = {
-	fuselage: {},
-	engine: {},
-};
+import { CockpitModel } from "../components/Cockpit";
+import { EngineModel } from "../components/Engine";
 
 export class Part {
 	constructor(parameters) {
+		console.log(parameters);
+
 		this.id = parameters.id;
 		this.name = parameters.partType.charAt(0).toUpperCase() + parameters.partType.slice(1);
 		this.partType = parameters.partType;
@@ -19,12 +16,19 @@ export class Part {
 		this.health = parameters.health || 1;
 		this.calculateDrag = parameters.calculateDrag || true;
 		this.partCollisionResponse = parameters.partCollisionResponse || true;
-		this.editor = new Editor(parameters);
+		this.editor = new Editor(parameters.editor || {});
 		if (parameters.partType === "fuselage") {
 			this.fuselage = new Fuselage(parameters.fuselage || {});
 		}
-		if (parameters.partType === "engine") {
+		if (parameters.partType === "wing") {
+			this.fuselage = new Fuselage(parameters.fuselage || {});
+			this.wing = new Wing(parameters.wing || {});
+		}
+		if (parameters.partType.includes("engine")) {
 			this.engine = new Engine(parameters.engine || {});
+		}
+		if (parameters.partType === "cockpit") {
+			this.cockpit = new Cockpit(parameters.cockpit || {});
 		}
 		this.clearAttachedToParts = () => {
 			this.editor.attachedToParts = [];
@@ -251,7 +255,13 @@ class Engine {
 	constructor(parameters) {
 		this.powerMultiplier = parameters.powerMultiplier;
 		this.throttleResponse = parameters.throttleResponse;
-		this.model = "";
+	}
+}
+
+class Cockpit {
+	constructor(parameters) {
+		this.powerMultiplier = parameters.powerMultiplier;
+		this.throttleResponse = parameters.throttleResponse;
 	}
 }
 
@@ -273,6 +283,9 @@ export const CreatePart = ({ part, selected = false, editor }) => {
 	return (
 		<group name={part.editor.objectName} position={part.position} rotation={part.rotation} userData={part}>
 			{part.fuselage && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}
+			{part.wing && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}
+			{part.cockpit && <CockpitModel name={"Cockpit"} scale={1.5} color={"white"} selected={selected} editor={editor} />}
+			{part.engine && <EngineModel name={part.partType} scale={2} color={"white"} selected={selected} editor={editor} />}
 
 			{editor && (
 				<Text name="text" position={[0, 2, 0]} fontSize={0.2} color="white" anchorX="center" anchorY="middle">

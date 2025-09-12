@@ -31,7 +31,7 @@ export default function GlowMesh({ geometry, position, rotation, scale }) {
 	};
 
 	return (
-		<mesh geometry={geometry} position={position} rotation={rotation} scale={scale}>
+		<mesh name="glowMesh" geometry={geometry} position={position} rotation={rotation} scale={scale}>
 			<shaderMaterial
 				attach="material"
 				args={[GlowMaterial]}
