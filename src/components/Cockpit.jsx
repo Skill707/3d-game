@@ -1,12 +1,23 @@
 import { useGLTF } from "@react-three/drei";
 import GlowMesh from "./ShapedForm/GlowMesh";
+import { Segment as SegmentModel } from "./ShapedForm/Segment";
+import { ConvexHullCollider } from "@react-three/rapier";
+import { useMemo } from "react";
 
-export const CockpitModel = ({ name, scale, color, selected, editor }) => {
+export const CockpitModel = ({ cockpit, color, selected, editor }) => {
 	const { nodes, materials } = useGLTF("/cockpits.glb");
 
-	if (name === "Cockpit")
+	// Собираем вершины для ConvexHullCollider
+	const vertices = useMemo(() => {
+		if (!nodes.Cockpit_1) return [];
+		const pos = nodes.Cockpit_1.geometry.getAttribute("position");
+		return Array.from(pos.array); // Float32Array → обычный массив
+	}, [nodes]);
+
+	if (cockpit.model === "Cockpit")
 		return (
-				<group rotation={[Math.PI / 2, 0, 0]} scale={scale}>
+			<>
+				<group rotation={[Math.PI / 2, 0, 0]} scale={2} position={[0, 0.42, 0]}>
 					<mesh name="cockpit" geometry={nodes.Cockpit_1.geometry} material={materials["PartMaterial(Clone)"]} />
 					<mesh geometry={nodes.Cockpit_2.geometry} material={materials["PartMaterial(Clone)(Clone) (Instance)"]} />
 					<mesh geometry={nodes.Cockpit_5.geometry} material={materials["Part Material BDM"]} />
@@ -21,8 +32,11 @@ export const CockpitModel = ({ name, scale, color, selected, editor }) => {
 						</>
 					)}
 				</group>
+				<SegmentModel segment={cockpit.rear} segmentName={"rear"} material={materials["PartMaterial(Clone)"]} selected={selected} editor={editor} />
+				{!editor && <ConvexHullCollider args={[vertices]} rotation={[Math.PI / 2, 0, 0]} scale={2} position={[0, 0.42, 0]} />}
+			</>
 		);
-	else if (name === "Chip") {
+	else if (cockpit.model === "Chip") {
 		<group dispose={null}>
 			<mesh name="chip" geometry={nodes.Chip.geometry} material={materials["PartMaterial(Clone)"]} rotation={[Math.PI / 2, 0, 0]} />
 		</group>;

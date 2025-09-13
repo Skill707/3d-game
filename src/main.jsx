@@ -143,7 +143,7 @@ export function Game() {
 					</>
 				)}
 				<Suspense>
-					<Physics gravity={[0, -9.81, 0]} >
+					<Physics gravity={[0, -9.81, 0]}  >
 						<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
 						<Ground width={2000} height={2000} segX={100} segY={100} amplitude={3} frequency={5} />
 					</Physics>

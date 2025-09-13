@@ -2,7 +2,7 @@ import { atom } from "jotai";
 import { Part } from "../utils/partFactory";
 import { getOffsetMatrix } from "../utils/transformUtils";
 
-const initialState = { parts: [new Part({ id: 0, partType: "fuselage", root: true })], selectedPart: null, lastUpdate: new Date().getTime() };
+const initialState = { parts: [new Part({ id: 0, partType: "cockpit", root: true })], selectedPart: null, lastUpdate: new Date().getTime() };
 
 const loadPartsFromStorage = () => {
 	try {

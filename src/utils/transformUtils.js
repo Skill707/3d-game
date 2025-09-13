@@ -128,7 +128,12 @@ export function attachPart(selectedObject, hit) {
 			finalPosition.sub(offset);
 		} else if (attachTo === "front" || attachTo === "rear") {
 			// локальные центры граней
-			const pHit = new THREE.Vector3().fromArray(hitPart.fuselage[attachTo].pos);
+			let pHit;
+			if (hitPart.partType === "fuselage") {
+				pHit = new THREE.Vector3().fromArray(hitPart.fuselage[attachTo].pos);
+			} else if (hitPart.partType === "cockpit") {
+				pHit = new THREE.Vector3().fromArray(hitPart.cockpit.rear.pos);
+			}
 			const pSel = new THREE.Vector3().fromArray(selectedPart.fuselage[otherSide(attachTo)].pos);
 			// мировая точка центра грани базовой детали
 			finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
@@ -229,17 +234,22 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPart.id)) {
 				api.connectParts(hitGroupObject, attachTo, object);
-				/*if (autoResizeParts && attachTo !== "side") {
-					const hitSegment = hitPart.shapeSegments[attachTo];
-					const selectedSegment = selectedPart.shapeSegments[otherSide(attachTo)];
+				if (autoResizeParts && attachTo !== "side") {
+					const selectedSegment = selectedPart.fuselage[otherSide(attachTo)];
+					let hitSegment;
+					if (hitPart.partType === "fuselage") {
+						hitSegment = hitPart.fuselage[attachTo];
+					} else if (hitPart.partType === "cockpit") {
+						hitSegment = hitPart.cockpit.rear;
+					}
 					api.updPartsSegmentNameProps([
 						{
-							id: selectedPartID,
+							id: selectedPart.id,
 							segmentName: otherSide(attachTo),
-							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant, extendeble: false },
+							newProperties: { ...hitSegment, pos: selectedSegment.pos, slant: selectedSegment.slant },
 						},
 					]);
-				}*/
+				}
 			}
 		}
 

@@ -16,7 +16,7 @@ export class Part {
 		this.health = parameters.health || 1;
 		this.calculateDrag = parameters.calculateDrag || true;
 		this.partCollisionResponse = parameters.partCollisionResponse || true;
-		this.editor = new Editor(parameters.editor || {});
+		this.editor = new Editor(parameters.editor || { id: parameters.id, root: parameters.root });
 		if (parameters.partType === "fuselage") {
 			this.fuselage = new Fuselage(parameters.fuselage || {});
 		}
@@ -85,6 +85,7 @@ class Segment {
 		this.slant = parameters.slant || 0;
 		this.angle = parameters.angle || 0;
 		this.clamps = parameters.clamps || [0, 0, 0, 0];
+		this.pos = parameters.pos || [0, 0, 0];
 		this.#points = this.generatePoints();
 	}
 
@@ -260,8 +261,10 @@ class Engine {
 
 class Cockpit {
 	constructor(parameters) {
-		this.powerMultiplier = parameters.powerMultiplier;
-		this.throttleResponse = parameters.throttleResponse;
+		this.model = parameters.model || "Cockpit";
+		this.powerMultiplier = parameters.powerMultiplier || 1;
+		this.throttleResponse = parameters.throttleResponse || 1;
+		this.rear = new Segment({ scale: [2.1, 3.45], pos: [0, 0, -6.1], corners: [0.8, 0.8, 1, 1] })
 	}
 }
 
@@ -284,7 +287,7 @@ export const CreatePart = ({ part, selected = false, editor }) => {
 		<group name={part.editor.objectName} position={part.position} rotation={part.rotation} userData={part}>
 			{part.fuselage && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}
 			{part.wing && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}
-			{part.cockpit && <CockpitModel name={"Cockpit"} scale={1.5} color={"white"} selected={selected} editor={editor} />}
+			{part.cockpit && <CockpitModel cockpit={part.cockpit} color={"white"} selected={selected} editor={editor} />}
 			{part.engine && <EngineModel name={part.partType} scale={2} color={"white"} selected={selected} editor={editor} />}
 
 			{editor && (
