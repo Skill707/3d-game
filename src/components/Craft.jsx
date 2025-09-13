@@ -8,7 +8,7 @@ import useMouseControls from "../hooks/useMouseControls";
 import { euler, quat, RigidBody, vec3 } from "@react-three/rapier";
 import { useFrame } from "@react-three/fiber";
 import { useKeyboardControls } from "@react-three/drei";
-import { applyLocalForce, applyLocalTorque } from "../utils/transformUtils";
+import { applyLocalForce, applyLocalForceAtPoint, applyLocalTorque } from "../utils/transformUtils";
 
 export const Craft = ({ orbitControlsRef, editor = true }) => {
 	const [partsStorage, partsStorageAPI] = useAtom(partsStorageAtom);
@@ -90,18 +90,29 @@ export const Craft = ({ orbitControlsRef, editor = true }) => {
 				if (value) actions[name]();
 			}
 
+			const mass = rigidBodyRef.current.mass();
+
 			const { pitch, roll, yaw, throttle } = craftControlsRef.current;
-			const torque = 2;
+			const torque = mass * 2;
 			applyLocalTorque(rigidBodyRef.current, { x: pitch * torque, y: yaw * torque, z: roll * torque });
 
-			const mass = rigidBodyRef.current.mass();
 			//console.log(mass, rigidBodyRef.current.localCom());
 			const gravity = 9.81;
 			const weight = mass * gravity;
 			// Сила, компенсирующая вес
-			const forceUp = { x: 0, y: weight, z: weight * 1.5 * throttle };
+			const forceUp = { x: 0, y: weight, z: 0 };
 
 			applyLocalForce(rigidBodyRef.current, forceUp, delta);
+
+			craftGroupRef.current.children.map((dragPart) => {
+				const part = dragPart.userData;
+				if (part.partType.includes("engine")) {
+					const maxForce = part.engine.maxForce;
+					applyLocalForce(rigidBodyRef.current, { x: 0, y: 0, z: maxForce * throttle }, delta);
+
+					//applyLocalForceAtPoint(rigidBodyRef.current, { x: 0, y: 0, z: (maxForce * throttle) / 100 }, vec3({ x: 0, y: 0, z: 2 }), delta);
+				}
+			});
 		}
 	});
 

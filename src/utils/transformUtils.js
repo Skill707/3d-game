@@ -117,7 +117,7 @@ export function attachPart(selectedObject, hit) {
 		const finalMatrix = new THREE.Matrix4().makeBasis(right.clone(), forward.clone(), normal.clone().negate());
 		finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
 		finalPosition = point.clone().add(pSel.clone().applyQuaternion(finalQuat));
-	} else if (connectionType === "fuselage") {
+	} else if (connectionType === "fuselage" || connectionType === "hollowFuselage") {
 		if (attachTo === "side") {
 			finalPosition = point.clone();
 			// Собираем новую матрицу
@@ -129,12 +129,31 @@ export function attachPart(selectedObject, hit) {
 		} else if (attachTo === "front" || attachTo === "rear") {
 			// локальные центры граней
 			let pHit;
-			if (hitPart.partType === "fuselage") {
+			if (hitPart.partType === "fuselage" || hitPart.partType === "hollowFuselage") {
 				pHit = new THREE.Vector3().fromArray(hitPart.fuselage[attachTo].pos);
 			} else if (hitPart.partType === "cockpit") {
 				pHit = new THREE.Vector3().fromArray(hitPart.cockpit.rear.pos);
 			}
 			const pSel = new THREE.Vector3().fromArray(selectedPart.fuselage[otherSide(attachTo)].pos);
+			// мировая точка центра грани базовой детали
+			finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
+			// итоговый поворот выбранной детали
+			const finalMatrix = new THREE.Matrix4().makeBasis(forward.clone(), right.clone().negate(), normal.clone().negate());
+			finalQuat = new THREE.Quaternion().setFromRotationMatrix(finalMatrix);
+			// сдвиг выбранной детали так, чтобы её противоположная грань легла в hitFaceWorld
+			const offsetSel = pSel.clone().applyQuaternion(finalQuat);
+			finalPosition.sub(offsetSel);
+		}
+	} else if (connectionType.includes("engine")) {
+		if (attachTo === "front" || attachTo === "rear") {
+			// локальные центры граней
+			let pHit;
+			if (hitPart.partType === "fuselage" || hitPart.partType === "hollowFuselage") {
+				pHit = new THREE.Vector3().fromArray(hitPart.fuselage[attachTo].pos);
+			} else if (hitPart.partType === "cockpit") {
+				pHit = new THREE.Vector3().fromArray(hitPart.cockpit.rear.pos);
+			}
+			const pSel = new THREE.Vector3().fromArray([0, 0, 2.125]);
 			// мировая точка центра грани базовой детали
 			finalPosition = hitGroupObject.position.clone().add(pHit.clone().applyQuaternion(baseQuat));
 			// итоговый поворот выбранной детали
@@ -234,10 +253,10 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPart.id)) {
 				api.connectParts(hitGroupObject, attachTo, object);
-				if (autoResizeParts && attachTo !== "side") {
+				if (autoResizeParts && attachTo !== "side" && selectedPart.fuselage) {
 					const selectedSegment = selectedPart.fuselage[otherSide(attachTo)];
 					let hitSegment;
-					if (hitPart.partType === "fuselage") {
+					if (hitPart.partType === "fuselage" || hitPart.partType === "hollowFuselage") {
 						hitSegment = hitPart.fuselage[attachTo];
 					} else if (hitPart.partType === "cockpit") {
 						hitSegment = hitPart.cockpit.rear;
@@ -296,9 +315,9 @@ export function getOffsetMatrix(firstObject, secondObject) {
 	return new THREE.Matrix4().copy(firstObject.matrixWorld).invert().multiply(secondObject.matrixWorld).toArray();
 }
 
-export function localPosDelta(posDelta, rot) {
+export function localPosDelta(posDelta, rotation) {
 	const delta = new THREE.Vector3(...posDelta);
-	const euler = new THREE.Euler(...rot);
+	const euler = new THREE.Euler(...rotation);
 	const quaternion = new THREE.Quaternion().setFromEuler(euler);
 	return delta.applyQuaternion(quaternion).toArray();
 }
@@ -332,6 +351,23 @@ export function applyLocalForce(rb, force, dt = 1 / 60) {
 	const world = local.applyQuaternion(quat);
 
 	rb.applyImpulse(world, true);
+}
+
+export function applyLocalForceAtPoint(rb, force, point, dt = 1 / 60) {
+	if (!rb) return;
+	const q = rb.rotation();
+	const quat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+
+	const impulse = {
+		x: force.x * dt,
+		y: force.y * dt,
+		z: force.z * dt,
+	};
+
+	const local = new THREE.Vector3(impulse.x, impulse.y, impulse.z);
+	const world = local.applyQuaternion(quat);
+
+	rb.applyImpulseAtPoint(world, point, true);
 }
 
 export function applyLocalTorque(rb, localTorque, wake = true) {

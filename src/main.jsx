@@ -118,7 +118,7 @@ export function Game() {
 					ref={orbitControlsRef}
 					enablePan={scene === "editor"}
 					minDistance={5}
-					maxDistance={20}
+					maxDistance={100}
 					maxPolarAngle={Math.PI / 2 - 0.1}
 					makeDefault
 				/>
@@ -143,7 +143,7 @@ export function Game() {
 					</>
 				)}
 				<Suspense>
-					<Physics gravity={[0, -9.81, 0]}  >
+					<Physics gravity={[0, -9.81, 0]}>
 						<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
 						<Ground width={2000} height={2000} segX={100} segY={100} amplitude={3} frequency={5} />
 					</Physics>

@@ -142,8 +142,12 @@ function raycast() {
 	objects = objects.filter((o) => {
 		if (this.selected) {
 			const part = this.selected.userData instanceof Part && this.selected.userData;
-			const find = part.attachedParts.find((ap) => ap.id === o.userData.id);
-			return find === undefined;
+			if (part) {
+				const find = part.attachedParts.find((ap) => ap.id === o.userData.id);
+				return find === undefined;
+			} else {
+				true;
+			}
 		}
 		return true;
 	});
@@ -152,7 +156,6 @@ function raycast() {
 		(i) => i.object.name !== "" && i.object.name !== "ground" && i.object.name !== "grid" && i.object.name !== "text" && i.object.name !== "glowMesh"
 	);
 
-	//.filter((i) => i.object.name.includes("front") || i.object.name.includes("rear") || i.object.name.includes("side"));
 	return hits;
 }
 

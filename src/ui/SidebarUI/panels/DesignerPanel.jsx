@@ -71,8 +71,6 @@ export function DesignerPanel({
 	handleClickAttached,
 	handleColorChange,
 }) {
-	console.log(selectedPart);
-
 	const activeTool = subTools.find((t) => t.id === activeSubToolId) || subTools[0];
 	const [selectedSection, selectSection] = useState("center");
 
@@ -83,7 +81,9 @@ export function DesignerPanel({
 		if (selectedSection === "center") {
 			let newProps;
 			if (field === "length" || field === "zOffset" || field === "xOffset") {
-				let offset = selectedPart.fuselage.offset;
+				console.log("newValue",newValue);
+				
+				let offset = [...selectedPart.fuselage.offset];
 				offset[field === "length" ? 2 : field === "zOffset" ? 1 : 0] = newValue;
 				newProps = { offset };
 			} else {

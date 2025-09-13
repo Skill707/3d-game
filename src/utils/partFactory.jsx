@@ -5,10 +5,7 @@ import { EngineModel } from "../components/Engine";
 
 export class Part {
 	constructor(parameters) {
-		console.log(parameters);
-
 		this.id = parameters.id;
-		this.name = parameters.partType.charAt(0).toUpperCase() + parameters.partType.slice(1);
 		this.partType = parameters.partType;
 		this.position = parameters.position || [0, 0, 0];
 		this.rotation = parameters.rotation || [0, 0, 0];
@@ -20,8 +17,11 @@ export class Part {
 		if (parameters.partType === "fuselage") {
 			this.fuselage = new Fuselage(parameters.fuselage || {});
 		}
+		if (parameters.partType === "hollowFuselage") {
+			this.fuselage = new Fuselage(parameters.fuselage || { closed: false, doubleSided: true });
+		}
 		if (parameters.partType === "wing") {
-			this.fuselage = new Fuselage(parameters.fuselage || {});
+			this.fuselage = new Fuselage(parameters.fuselage || { offset: [0, 0, 2], pinchX: 0.0, pinchY: 1, angle: 0, scale: [2, 1] });
 			this.wing = new Wing(parameters.wing || {});
 		}
 		if (parameters.partType.includes("engine")) {
@@ -77,6 +77,8 @@ class Editor {
 class Segment {
 	#points;
 	constructor(parameters) {
+		console.log(parameters);
+
 		this.scale = parameters.scale || [2, 2];
 		this.pointsCount = parameters.pointsCount || 32;
 		this.corners = parameters.corners || [1, 1, 1, 1];
@@ -86,6 +88,7 @@ class Segment {
 		this.angle = parameters.angle || 0;
 		this.clamps = parameters.clamps || [0, 0, 0, 0];
 		this.pos = parameters.pos || [0, 0, 0];
+		this.closed = parameters.closed && true;
 		this.#points = this.generatePoints();
 	}
 
@@ -176,13 +179,18 @@ class Segment {
 
 class Fuselage {
 	constructor(parameters) {
-		this.version = parameters.version || 1;
-		this.front = new Segment(parameters.front || {});
-		this.rear = new Segment(parameters.rear || {});
+		const segmentParameters = {
+			closed: parameters.closed,
+			pinchX: parameters.pinchX,
+			pinchY: parameters.pinchY,
+			angle: parameters.angle,
+			scale: parameters.scale,
+		};
+		this.front = new Segment(parameters.front || segmentParameters);
+		this.rear = new Segment(parameters.rear || segmentParameters);
 		this.offset = parameters.offset || [0, 0, 2];
-		this.deadWeight = parameters.deadWeight || 0;
-		this.closed = parameters.closed || false;
 		this.doubleSided = parameters.doubleSided || false;
+		this.deadWeight = parameters.deadWeight || 0;
 	}
 
 	get frontHeight() {
@@ -256,15 +264,14 @@ class Engine {
 	constructor(parameters) {
 		this.powerMultiplier = parameters.powerMultiplier;
 		this.throttleResponse = parameters.throttleResponse;
+		this.maxForce = parameters.maxForce || 150000;
 	}
 }
 
 class Cockpit {
 	constructor(parameters) {
 		this.model = parameters.model || "Cockpit";
-		this.powerMultiplier = parameters.powerMultiplier || 1;
-		this.throttleResponse = parameters.throttleResponse || 1;
-		this.rear = new Segment({ scale: [2.1, 3.45], pos: [0, 0, -6.1], corners: [0.8, 0.8, 1, 1] })
+		this.rear = new Segment({ scale: [2.1, 3.45], pos: [0, 0, -6.1], corners: [0.8, 0.8, 1, 1] });
 	}
 }
 

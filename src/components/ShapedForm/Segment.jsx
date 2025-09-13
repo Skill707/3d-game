@@ -40,8 +40,8 @@ export const Segment = ({ segment, segmentName, material, selected, editor }) =>
 		geo.setAttribute("position", new THREE.BufferAttribute(new Float32Array(positions), 3));
 		geo.computeVertexNormals();
 		return geo;
-	}, [segment]);
-
+	}, [segment, segmentName]);
+1
 	useEffect(() => {
 		return () => geometry.dispose();
 	}, [geometry]);

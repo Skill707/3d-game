@@ -161,14 +161,19 @@ export function SidebarUI() {
 
 		if (key === "offset") {
 			const { offset } = newProperties;
+
 			const xOffsetDelta = selectedPart.fuselage.offset[0] - offset[0];
 			const zOffsetDelta = selectedPart.fuselage.offset[1] - offset[1];
 			const lengthDelta = selectedPart.fuselage.offset[2] - offset[2];
+
+			const posDelta = [xOffsetDelta / 2, zOffsetDelta / 2, lengthDelta / 2];
+			const posDeltaRev = [-xOffsetDelta / 2, -zOffsetDelta / 2, -lengthDelta / 2];
+
 			selectedPart.attachedParts.forEach((ap) => {
-				translateList.push({ id: ap.id, posDelta: localPosDelta([-xOffsetDelta, -zOffsetDelta, -lengthDelta / 2], selectedPart.rotation) });
+				translateList.push({ id: ap.id, posDelta: localPosDelta(ap.place === "front" ? posDeltaRev : posDelta, selectedPart.rotation) });
 			});
 			selectedPart.attachedToParts.forEach((atp) => {
-				translateList.push({ id: atp.id, posDelta: localPosDelta([xOffsetDelta, zOffsetDelta, lengthDelta / 2], selectedPart.rotation) });
+				translateList.push({ id: atp.id, posDelta: localPosDelta(atp.place === "front" ? posDeltaRev : posDelta, selectedPart.rotation) });
 			});
 		} else {
 			const prev = { pinchX: selectedPart.fuselage.pinchXAvg, pinchY: selectedPart.fuselage.pinchYAvg, angle: selectedPart.fuselage.angleAvg };
@@ -242,7 +247,16 @@ export function SidebarUI() {
 		}));
 	};
 
-	const partTypeRegistry = ["fuselage", "engine1", "engine2", "engine3", "cockpit", "wing"];
+	const partTypeRegistry = ["fuselage", "hollowFuselage","engine1", "engine2", "engine3", "cockpit", "wing"];
+	const partTypeNames = {
+		fuselage: "Fuselage",
+		hollowFuselage: "Hollow Fuselage",
+		engine1: "Small Jet Engine",
+		engine2: "Jet Engine",
+		engine3: "Plane Engine",
+		cockpit: "Cockpit",
+		wing: "Wing",
+	};
 
 	if (!partsIconsRef.current) {
 		const arr = [];
@@ -250,7 +264,7 @@ export function SidebarUI() {
 		partTypeRegistry.forEach((partType) => {
 			arr.push({
 				type: partType,
-				name: partType.charAt(0).toUpperCase() + partType.slice(1),
+				name: partTypeNames[partType],
 				icon: <PartIconView partType={partType} size={128} />,
 				description: `Description for ${partType}`,
 			});
