@@ -3,7 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { useAtom } from "jotai";
 import { baseSceneAtom } from "./state/atoms";
-import { GizmoHelper, GizmoViewport, Grid, KeyboardControls, Loader, OrbitControls, Sky, Stats } from "@react-three/drei";
+import { Box, GizmoHelper, GizmoViewport, Grid, KeyboardControls, Loader, OrbitControls, Sky, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import { Physics } from "@react-three/rapier";
@@ -19,16 +19,22 @@ export function Game() {
 		switch (scene) {
 			case "game":
 				return [
-					{ name: "pitchDown", keys: ["KeyW"] },
 					{ name: "pitchUp", keys: ["KeyS"] },
+					{ name: "pitchDown", keys: ["KeyW"] },
 					{ name: "rollLeft", keys: ["KeyA"] },
 					{ name: "rollRight", keys: ["KeyD"] },
 					{ name: "yawLeft", keys: ["KeyQ"] },
 					{ name: "yawRight", keys: ["KeyE"] },
 					{ name: "throttleUp", keys: ["Shift"] },
 					{ name: "throttleDown", keys: ["Control"] },
+					{ name: "brake", keys: ["KeyB"] },
+					{ name: "trimUp", keys: ["KeyT"] },
+					{ name: "trimDown", keys: ["KeyY"] },
+					{ name: "trimZero", keys: ["KeyU"] },
+					{ name: "vtolUp", keys: ["KeyZ"] },
+					{ name: "vtolDown", keys: ["KeyX"] },
+					{ name: "vtolZero", keys: ["KeyC"] },
 					{ name: "shoot", keys: ["Space"] },
-					{ name: "menu", keys: ["Escape", "`"] },
 				];
 
 			case "editor":
@@ -99,7 +105,7 @@ export function Game() {
 	return (
 		<KeyboardControls map={map}>
 			<AircraftEditorUI />
-			<Canvas shadows camera={{ position: [8, 5, 10], fov: 60 }} flat onClick={toggleFullScreen}>
+			<Canvas shadows camera={{ position: [30, 20, 30], fov: 60, far: 10000 }} flat onClick={toggleFullScreen}>
 				<ambientLight intensity={0.5} />
 				<directionalLight
 					castShadow
@@ -113,7 +119,7 @@ export function Game() {
 					shadow-camera-bottom={-100}
 					shadow-bias={-0.0001}
 				/>
-				<Sky sunPosition={[100, 100, 0]} distance={1000} />
+				<Sky sunPosition={[100, 100, 0]} distance={10000} />
 				<OrbitControls
 					ref={orbitControlsRef}
 					enablePan={scene === "editor"}
@@ -125,7 +131,7 @@ export function Game() {
 				{scene === "editor" && (
 					<>
 						<Grid
-							position={[0, 2, 0]}
+							position={[0, -10, 0]}
 							args={[20, 20]}
 							cellSize={0.5}
 							cellThickness={1}
@@ -133,7 +139,7 @@ export function Game() {
 							sectionSize={2.5}
 							sectionThickness={1.5}
 							sectionColor={"#0d79f2"}
-							fadeDistance={30}
+							fadeDistance={100}
 							infiniteGrid
 							name="grid"
 						/>
@@ -145,7 +151,7 @@ export function Game() {
 				<Suspense>
 					<Physics gravity={[0, -9.81, 0]}>
 						<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
-						<Ground width={2000} height={2000} segX={100} segY={100} amplitude={3} frequency={5} />
+						<Ground width={5000} height={5000} segX={100} segY={100} amplitude={15} frequency={5} />
 					</Physics>
 				</Suspense>
 			</Canvas>

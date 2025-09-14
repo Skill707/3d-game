@@ -189,11 +189,11 @@ export function moveAttached(object, objects) {
 
 		if (part.offsetMatrix) {
 			const offsetMatrix = new THREE.Matrix4().fromArray(part.offsetMatrix);
-			const newMatrix = new THREE.Matrix4().copy(object.matrixWorld).multiply(offsetMatrix);
+			const newMatrix = new THREE.Matrix4().copy(object.matrix).multiply(offsetMatrix);
 			newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
 		}
 
-		obj.updateMatrixWorld(true);
+	obj.updateMatrixWorld(true);
 
 		moveAttached(obj, objects);
 	});
@@ -236,11 +236,7 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 
 		if (lastHit) {
 			const attachTo = lastHit.object.name;
-			console.log("1", lastHit.object);
-
 			function findGroup(obj, group = null) {
-				console.log(obj);
-
 				if (obj.isGroup) group = obj;
 
 				if (obj.parent.name.includes("dragPart")) return obj.parent;
@@ -248,7 +244,6 @@ export const saveTransformation = (partsStorageAPI, object, objects = null, last
 				return findGroup(obj.parent, group);
 			}
 			const hitGroupObject = findGroup(lastHit.object);
-			console.log("hitGroupObject", hitGroupObject);
 
 			const hitPart = hitGroupObject.userData;
 			if (!hitPart.attachedParts.find((part) => part.id === selectedPart.id)) {
@@ -355,19 +350,21 @@ export function applyLocalForce(rb, force, dt = 1 / 60) {
 
 export function applyLocalForceAtPoint(rb, force, point, dt = 1 / 60) {
 	if (!rb) return;
+	// Кватернион и позиция тела
 	const q = rb.rotation();
+	const p = rb.translation();
 	const quat = new THREE.Quaternion(q.x, q.y, q.z, q.w);
+	const pos = new THREE.Vector3(p.x, p.y, p.z);
 
-	const impulse = {
-		x: force.x * dt,
-		y: force.y * dt,
-		z: force.z * dt,
-	};
+	// Импульс в локальных координатах -> в мировые
+	const worldImpulse = new THREE.Vector3(force.x, force.y, force.z)
+		.multiplyScalar(dt)
+		.applyQuaternion(quat);
 
-	const local = new THREE.Vector3(impulse.x, impulse.y, impulse.z);
-	const world = local.applyQuaternion(quat);
-
-	rb.applyImpulseAtPoint(world, point, true);
+	// Точка в локальных координатах -> в мировые
+	const worldPoint = new THREE.Vector3().fromArray(point).applyQuaternion(quat).add(pos);
+// Применяем импульс в мировой точке
+	rb.applyImpulseAtPoint(worldImpulse, worldPoint, true);
 }
 
 export function applyLocalTorque(rb, localTorque, wake = true) {

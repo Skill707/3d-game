@@ -1,0 +1,27 @@
+.hud {
+  position: absolute;
+  bottom: 50px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 2rem;
+  color: #ffffff;
+  background: #00000080;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-family: monospace;
+}
+
+.hud-item {
+  text-align: center;
+}
+
+.hud-item span {
+  font-size: 0.8rem;
+  color: #aaaaaa;
+}
+
+.hud-item p {
+  margin: 0;
+  font-size: 1.5rem;
+}

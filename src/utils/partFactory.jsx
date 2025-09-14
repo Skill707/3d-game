@@ -77,8 +77,6 @@ class Editor {
 class Segment {
 	#points;
 	constructor(parameters) {
-		console.log(parameters);
-
 		this.scale = parameters.scale || [2, 2];
 		this.pointsCount = parameters.pointsCount || 32;
 		this.corners = parameters.corners || [1, 1, 1, 1];

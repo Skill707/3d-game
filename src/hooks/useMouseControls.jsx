@@ -8,6 +8,7 @@ let selected = null;
 
 export default function useMouseControls(enabled, partsStorage, partsStorageAPI, settingsStorage, orbit) {
 	const { scene, camera, gl } = useThree();
+	console.log(scene);
 
 	function updatePointer(event) {
 		const rect = gl.domElement.getBoundingClientRect();
@@ -27,7 +28,9 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 		const intersections = [];
 		raycaster.setFromCamera(pointer, camera);
 		raycaster.intersectObjects(scene.children, true, intersections);
-		const hits = intersections.filter((i) => i.object.name !== "" && i.object.name !== "ground" && i.object.name !== "grid" && i.object.name !== "text" && i.object.name !== "glowMesh");
+		const hits = intersections.filter(
+			(i) => i.object.name !== "" && i.object.name !== "ground" && i.object.name !== "grid" && i.object.name !== "text" && i.object.name !== "glowMesh"
+		);
 		return hits;
 	}
 
@@ -39,6 +42,7 @@ export default function useMouseControls(enabled, partsStorage, partsStorageAPI,
 			const hits = raycast();
 			if (hits.length > 0) {
 				console.log(hits.map((hit) => hit.object.name));
+				console.log(hits[0]);
 
 				selected = findGroup(hits[0].object);
 
