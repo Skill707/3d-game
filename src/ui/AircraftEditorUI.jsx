@@ -13,7 +13,7 @@ export function AircraftEditorUI() {
 			<>
 				<SidebarUI />
 				<SideButtons />
-				{scene !== "editor" && <HUD speed={hudData.speed} altitude={hudData.altitude} />}
+				{scene !== "editor" && <HUD hudData={hudData} />}
 			</>
 		</div>
 	);

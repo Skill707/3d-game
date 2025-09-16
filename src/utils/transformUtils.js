@@ -193,7 +193,7 @@ export function moveAttached(object, objects) {
 			newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
 		}
 
-	obj.updateMatrixWorld(true);
+		obj.updateMatrixWorld(true);
 
 		moveAttached(obj, objects);
 	});
@@ -357,13 +357,11 @@ export function applyLocalForceAtPoint(rb, force, point, dt = 1 / 60) {
 	const pos = new THREE.Vector3(p.x, p.y, p.z);
 
 	// Импульс в локальных координатах -> в мировые
-	const worldImpulse = new THREE.Vector3(force.x, force.y, force.z)
-		.multiplyScalar(dt)
-		.applyQuaternion(quat);
+	const worldImpulse = new THREE.Vector3(force.x, force.y, force.z).multiplyScalar(dt).applyQuaternion(quat);
 
 	// Точка в локальных координатах -> в мировые
 	const worldPoint = new THREE.Vector3().fromArray(point).applyQuaternion(quat).add(pos);
-// Применяем импульс в мировой точке
+	// Применяем импульс в мировой точке
 	rb.applyImpulseAtPoint(worldImpulse, worldPoint, true);
 }
 
