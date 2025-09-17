@@ -3,20 +3,22 @@ import { createRoot } from "react-dom/client";
 import "./index.css";
 import { useAtom } from "jotai";
 import { baseSceneAtom } from "./state/atoms";
-import { Box, GizmoHelper, GizmoViewport, Grid, KeyboardControls, Loader, OrbitControls, Sky, Stats } from "@react-three/drei";
+import { GizmoHelper, GizmoViewport, Grid, KeyboardControls, Loader, Sky, Stats } from "@react-three/drei";
 import { Canvas } from "@react-three/fiber";
 import { AircraftEditorUI } from "./ui/AircraftEditorUI";
 import { Physics } from "@react-three/rapier";
 import { Ground } from "./components/Ground";
 import { Craft } from "./components/Craft";
+import { CameraController } from "./hooks/CameraController";
 
 export function Game() {
 	console.log("function Game");
-	const [scene] = useAtom(baseSceneAtom);
-	const orbitControlsRef = useRef();
+	const [sceneName] = useAtom(baseSceneAtom);
+	const cameraControlsRef = useRef();
+	const craftRBRef = useRef();
 
 	const map = useMemo(() => {
-		switch (scene) {
+		switch (sceneName) {
 			case "game":
 				return [
 					{ name: "pitchUp", keys: ["KeyS"] },
@@ -53,7 +55,7 @@ export function Game() {
 			default:
 				break;
 		}
-	}, [scene]);
+	}, [sceneName]);
 
 	const toggleFullScreen = async () => {
 		try {
@@ -120,15 +122,9 @@ export function Game() {
 					shadow-bias={-0.0001}
 				/>
 				<Sky sunPosition={[100, 100, 0]} distance={10000} />
-				<OrbitControls
-					ref={orbitControlsRef}
-					enablePan={scene === "editor"}
-					minDistance={5}
-					maxDistance={100}
-					maxPolarAngle={Math.PI / 2 - 0.1}
-					makeDefault
-				/>
-				{scene === "editor" && (
+				<CameraController sceneName={sceneName} cameraControlsRef={cameraControlsRef} craftRBRef={craftRBRef} />
+
+				{sceneName === "editor" && (
 					<>
 						<Grid
 							position={[0, -10, 0]}
@@ -150,7 +146,8 @@ export function Game() {
 				)}
 				<Suspense>
 					<Physics gravity={[0, -9.81, 0]}>
-						<Craft orbitControlsRef={orbitControlsRef} editor={scene === "editor"} />
+						<Craft craftRBRef={craftRBRef} cameraControlsRef={cameraControlsRef} editor={sceneName === "editor"} />
+
 						<Ground width={5000} height={5000} segX={100} segY={100} amplitude={15} frequency={5} />
 					</Physics>
 				</Suspense>
