@@ -24,7 +24,7 @@ function ThirdPersonCameraControls() {
 
 	useFrame((_, delta) => {
 		const rotation = new Quaternion().setFromEuler(new Euler(pitch.current, yaw.current, 0, "YXZ"));
-		const camOffset = new Vector3(0, 0, 25).applyQuaternion(rotation);
+		const camOffset = new Vector3(0, 0, 50).applyQuaternion(rotation);
 		camera.position.lerp(camOffset, delta * 4);
 		camera.quaternion.slerp(rotation, delta * 4);
 	});

@@ -1,7 +1,7 @@
 import { useGLTF } from "@react-three/drei";
 import GlowMesh from "./ShapedForm/GlowMesh";
 import { Segment as SegmentModel } from "./ShapedForm/Segment";
-import { ConvexHullCollider } from "@react-three/rapier";
+import { ConvexHullCollider, interactionGroups } from "@react-three/rapier";
 import { useMemo } from "react";
 
 export const CockpitModel = ({ cockpit, color, selected, editor }) => {
@@ -33,7 +33,15 @@ export const CockpitModel = ({ cockpit, color, selected, editor }) => {
 					)}
 				</group>
 				<SegmentModel segment={cockpit.rear} segmentName={"rear"} material={materials["PartMaterial(Clone)"]} selected={selected} editor={editor} />
-				{!editor && <ConvexHullCollider args={[vertices]} rotation={[Math.PI / 2, 0, 0]} scale={2} position={[0, 0.42, 0]} />}
+				{!editor && (
+					<ConvexHullCollider
+						args={[vertices]}
+						rotation={[Math.PI / 2, 0, 0]}
+						scale={2}
+						position={[0, 0.42, 0]}
+						collisionGroups={interactionGroups([0], [1])}
+					/>
+				)}
 			</>
 		);
 	else if (cockpit.model === "Chip") {

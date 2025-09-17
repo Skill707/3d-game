@@ -10,10 +10,11 @@ import { Physics } from "@react-three/rapier";
 import { Ground } from "./components/Ground";
 import { Craft } from "./components/Craft";
 import { CameraController } from "./hooks/CameraController";
+import SimulateCraft from "./components/SimulateCraft";
 
 export function Game() {
-	console.log("function Game");
 	const [sceneName] = useAtom(baseSceneAtom);
+	console.log("function Game Scene:", sceneName);
 	const cameraControlsRef = useRef();
 	const craftRBRef = useRef();
 
@@ -107,7 +108,7 @@ export function Game() {
 	return (
 		<KeyboardControls map={map}>
 			<AircraftEditorUI />
-			<Canvas shadows camera={{ position: [30, 20, 30], fov: 60, far: 10000 }} flat onClick={toggleFullScreen}>
+			<Canvas shadows camera={{ position: [30, 20, 30], fov: 60, far: 10000 }} flat onClick={toggleFullScreen} >
 				<ambientLight intensity={0.5} />
 				<directionalLight
 					castShadow
@@ -142,13 +143,13 @@ export function Game() {
 						<GizmoHelper alignment="bottom-right" margin={[80, 80]}>
 							<GizmoViewport axisColors={["#9d4b4b", "#2f7f4f", "#3b5b9d"]} labelColor="white" />
 						</GizmoHelper>
+						<Craft craftRBRef={craftRBRef} cameraControlsRef={cameraControlsRef} editor={sceneName === "editor"} />
 					</>
 				)}
 				<Suspense>
-					<Physics gravity={[0, -9.81, 0]}>
-						<Craft craftRBRef={craftRBRef} cameraControlsRef={cameraControlsRef} editor={sceneName === "editor"} />
-
-						<Ground width={5000} height={5000} segX={100} segY={100} amplitude={15} frequency={5} />
+					<Physics gravity={[0, -9.81, 0]} >
+						{sceneName === "game" && <SimulateCraft craftRBRef={craftRBRef} />}
+						<Ground width={50000} height={50000} segX={100} segY={100} amplitude={150} frequency={5} />
 					</Physics>
 				</Suspense>
 			</Canvas>

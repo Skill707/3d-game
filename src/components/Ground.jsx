@@ -77,7 +77,7 @@ export const Ground = ({ width = 20, height = 20, segX = 50, segY = 50, amplitud
 	}, [geometry]);
 
 	return (
-		<RigidBody type="fixed" colliders={false} position={[0, -500, 0]}>
+		<RigidBody type="fixed" colliders={false} position={[0, -1000, 0]}>
 			<mesh name={"ground"} geometry={geometry} material={material} castShadow receiveShadow />
 			{indices && <TrimeshCollider args={[vertices, indices]} />}
 		</RigidBody>

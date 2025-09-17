@@ -287,7 +287,9 @@ class Inputs {
 	}
 }
 
-export const CreatePart = ({ part, selected = false, editor }) => {
+export const CreatePart = ({ part, selected = false, editor= false }) => {
+	//console.log("CreatePart", part);
+	
 	return (
 		<group name={part.editor.objectName} position={part.position} rotation={part.rotation} userData={part}>
 			{part.fuselage && <FuselageModel fuselage={part.fuselage} color={"white"} selected={selected} editor={editor} />}

@@ -47,4 +47,4 @@ export const settingsAtom = atom(
 	}
 );
 
-export const baseSceneAtom = atom("game"); 
+export const baseSceneAtom = atom("editor"); 

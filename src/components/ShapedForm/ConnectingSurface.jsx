@@ -1,7 +1,7 @@
 import { useMemo, useEffect } from "react";
 import * as THREE from "three";
 import GlowMesh from "./GlowMesh";
-import { ConvexHullCollider } from "@react-three/rapier";
+import { ConvexHullCollider, interactionGroups } from "@react-three/rapier";
 import { mergeGeometries } from "three/examples/jsm/utils/BufferGeometryUtils.js";
 
 export const ConnectingSurface = ({ segmentA, segmentB, material, selected, editor }) => {
@@ -149,7 +149,7 @@ export const ConnectingSurface = ({ segmentA, segmentB, material, selected, edit
 	return (
 		<>
 			<mesh name="side" geometry={geometry} material={material} receiveShadow castShadow />
-			{!editor && <ConvexHullCollider args={[vertices]} />}
+			{!editor && <ConvexHullCollider args={[vertices]} collisionGroups={interactionGroups([0], [1])}/>}
 			{selected && editor && <GlowMesh geometry={geometry} />}
 		</>
 	);
